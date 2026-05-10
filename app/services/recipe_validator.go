@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"path/filepath"
 	"sort"
 	"strings"
 
@@ -13,11 +12,15 @@ import (
 )
 
 type RecipeValidator struct {
-	loader CatalogLoader
+	loader        CatalogLoader
+	frameResolver SpriteFrameResolver
 }
 
 func NewRecipeValidator() RecipeValidator {
-	return RecipeValidator{loader: NewCatalogLoader()}
+	return RecipeValidator{
+		loader:        NewCatalogLoader(),
+		frameResolver: NewSpriteFrameResolver(),
+	}
 }
 
 func (validator RecipeValidator) Validate(recipePath string, assetsPath string) (models.RecipeValidationResult, *models.Problem) {
@@ -81,20 +84,20 @@ func (validator RecipeValidator) Validate(recipePath string, assetsPath string) 
 			warnings = append(warnings, fallbackBodyTypeWarning(selection.ID, bodyType, resolvedBodyType, resolvedPath))
 		}
 		for _, animationID := range requiredAnimations {
-			framePath := filepath.Join(assetsPath, "spritesheets", filepath.FromSlash(resolvedPath), animationID+".png")
-			if _, err := os.Stat(framePath); err != nil {
-				if os.IsNotExist(err) {
-					relativeFrame := path.Join("spritesheets", path.Clean(path.Join(resolvedPath, animationID+".png")))
-					return models.RecipeValidationResult{}, &models.Problem{
-						Code:    "MISSING_SPRITE_FRAME",
-						Message: fmt.Sprintf("missing required sprite frame: %s", relativeFrame),
-						Field:   relativeFrame,
-					}
-				}
+			_, found, err := validator.frameResolver.ResolveFrame(assetsPath, resolvedPath, animationID)
+			if err != nil {
 				return models.RecipeValidationResult{}, &models.Problem{
 					Code:    "READ_SPRITE_FRAME_FAILED",
 					Message: err.Error(),
 					Field:   path.Join("spritesheets", path.Clean(path.Join(resolvedPath, animationID+".png"))),
+				}
+			}
+			if !found {
+				relativeFrame := path.Join("spritesheets", path.Clean(path.Join(resolvedPath, animationID+".png")))
+				return models.RecipeValidationResult{}, &models.Problem{
+					Code:    "MISSING_SPRITE_FRAME",
+					Message: fmt.Sprintf("missing required sprite frame: %s", relativeFrame),
+					Field:   relativeFrame,
 				}
 			}
 		}

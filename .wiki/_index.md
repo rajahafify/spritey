@@ -6,7 +6,7 @@ Last updated: 2026-05-10
 
 ## Statistics
 
-- Sources: 14 raw documents
+- Sources: 15 raw documents
 - Articles: 8 compiled wiki articles
 - Inventory records: 0 tracked items
 - Datasets: 0 manifests
@@ -32,6 +32,7 @@ Last updated: 2026-05-10
 
 ## Recent Changes
 
+- 2026-05-10: Implemented path resolver parity with Python compositor A/B/C/D lookup rules for validate/make frame discovery (spec 012).
 - 2026-05-10: Implemented batch make manifest v1 (spec 011) with sequential fail-fast jobs, stable batch envelopes, and manifest-relative path resolution.
 - 2026-05-10: Implemented make report artifact integrity (spec 010) with additive report PNG hash/byte metadata derived from written output.
 - 2026-05-10: Implemented make animation strip output (spec 009) with per-animation vertical strip rendering and unchanged make/report envelopes.

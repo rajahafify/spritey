@@ -2,6 +2,7 @@
 title: "Make Command"
 category: concept
 sources:
+  - raw/notes/2026-05-10-path-resolver-parity.md
   - raw/notes/2026-05-10-batch-make-manifest-v1.md
   - raw/notes/2026-05-10-make-report-artifact-integrity.md
   - raw/notes/2026-05-10-make-animation-strip-output.md
@@ -12,7 +13,7 @@ sources:
 created: 2026-05-10
 updated: 2026-05-10
 tags: [spritey, make, render, report]
-summary: "Spritey's make commands support deterministic strip rendering, stable single/batch JSON and non-JSON output, readiness-gated validation, and additive report provenance plus output-artifact integrity metadata."
+summary: "Spritey's make commands support Python-parity path resolution, deterministic strip rendering, stable single/batch JSON and non-JSON output, readiness-gated validation, and additive report provenance plus output-artifact integrity metadata."
 ---
 
 # Make Command
@@ -26,6 +27,12 @@ spritey make <recipe> --assets <dir> --out <png> [--report <json>] [--json]
 Contract points in current implemented slices:
 
 - recipe/assets validation is required before rendering;
+- frame lookup uses shared resolver parity order:
+  1) `{prefix}/{anim}.png`,
+  2) `{prefix}/fg/{anim}.png`,
+  3) `{prefix}/{anim}/*.png`,
+  4) mapped slash/thrust weapon dirs (`attack_slash`/`attack_thrust`) excluding lowercase `behind` filenames;
+- slash/thrust structure-C paths win over mapped structure-D paths when both exist;
 - render-input readiness failures such as `MISSING_SPRITE_FRAME` are treated as input-validation failures (exit `3`), not render failures;
 - output PNG path is explicit and required;
 - report output is optional and uses additive report schema v1 provenance fields;

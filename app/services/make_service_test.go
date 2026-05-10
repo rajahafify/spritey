@@ -189,6 +189,32 @@ func TestMakeServiceMissingRequiredFrameReturnsInputValidationAndNoOutput(t *tes
 	}
 }
 
+func TestMakeServiceResolvesMappedAttackSlashPath(t *testing.T) {
+	assets, recipe := writeSlashParityFixture(t, true)
+	out := filepath.Join(t.TempDir(), "sprite.png")
+
+	result, problem := NewMakeService().Make(recipe, assets, out, "")
+	if problem != nil {
+		t.Fatalf("expected success, got %+v", problem)
+	}
+	if result.Summary.FrameCount != 1 {
+		t.Fatalf("expected one frame, got %+v", result.Summary)
+	}
+}
+
+func TestMakeServiceMappedAttackSlashMissingReturnsMissingSpriteFrame(t *testing.T) {
+	assets, recipe := writeSlashParityFixture(t, false)
+	out := filepath.Join(t.TempDir(), "sprite.png")
+
+	_, problem := NewMakeService().Make(recipe, assets, out, "")
+	if problem == nil {
+		t.Fatal("expected make problem")
+	}
+	if problem.Code != "MISSING_SPRITE_FRAME" {
+		t.Fatalf("unexpected make code: %+v", problem)
+	}
+}
+
 func TestMakeServiceFallbackPathWarningsInResultAndReport(t *testing.T) {
 	assets, recipe := writeMakeReadinessFixture(t, makeReadinessFixtureOptions{
 		recipeBodyType:        "female",
@@ -379,6 +405,28 @@ func withOptionalLeadingComma(value string) string {
 		return ""
 	}
 	return "," + value
+}
+
+func writeSlashParityFixture(t *testing.T, includeMappedSlash bool) (string, string) {
+	t.Helper()
+	root := t.TempDir()
+	assets := filepath.Join(root, "assets")
+
+	writeFixtureFile(t, filepath.Join(assets, "pack.json"), `{"schema_version":"1","id":"slash-parity","name":"Slash Parity","defaults":{"body_type":"male","animations":["slash"],"canvas_width":8}}`)
+	writeFixtureFile(t, filepath.Join(assets, "sheet_definitions", "body", "body_human.json"), `{"name":"Human Body","type_name":"body","layer_1":{"zPos":10,"male":"body/human/male/"},"animations":["slash"]}`)
+	writeFixtureFile(t, filepath.Join(assets, "sheet_definitions", "weapon", "sword_training.json"), `{"name":"Training Sword","type_name":"weapon","layer_1":{"zPos":30,"male":"weapon/sword/male/"},"animations":["slash"]}`)
+	writeFixtureFile(t, filepath.Join(assets, "palette_definitions", ".gitkeep"), "")
+	writeFixtureFile(t, filepath.Join(assets, "spritesheets", ".gitkeep"), "")
+
+	writeLayerPNG(t, filepath.Join(assets, "spritesheets", "body", "human", "male", "slash.png"), color.RGBA{R: 40, G: 100, B: 200, A: 255})
+	if includeMappedSlash {
+		writeLayerPNG(t, filepath.Join(assets, "spritesheets", "weapon", "sword", "male", "attack_slash", "front.png"), color.RGBA{R: 200, G: 40, B: 80, A: 255})
+		writeLayerPNG(t, filepath.Join(assets, "spritesheets", "weapon", "sword", "male", "attack_slash", "behind_pose.png"), color.RGBA{R: 180, G: 20, B: 60, A: 255})
+	}
+
+	recipe := filepath.Join(root, "recipe.json")
+	writeFixtureFile(t, recipe, `{"body_type":"male","selections":{"body":{"id":"body_human"},"weapon":{"id":"sword_training"}}}`)
+	return assets, recipe
 }
 
 func writeFixtureFile(t *testing.T, path, data string) {

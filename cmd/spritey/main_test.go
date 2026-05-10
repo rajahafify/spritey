@@ -1156,6 +1156,39 @@ func TestMakeMissingSpriteFrameMapsToExit3AndNoOutput(t *testing.T) {
 	}
 }
 
+func TestMakeSlashUsesMappedAttackPathWhenDirectFramesMissing(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	assets, recipe := writeSlashParityCLIFixture(t, true)
+	out := filepath.Join(t.TempDir(), "sprite.png")
+
+	code := run([]string{"make", recipe, "--assets", assets, "--out", out, "--json"}, &stdout, &stderr)
+	if code != 0 {
+		t.Fatalf("expected exit code 0, got %d stderr=%q stdout=%q", code, stderr.String(), stdout.String())
+	}
+	got := decodeMakeResponse(t, stdout.Bytes())
+	if !got.OK {
+		t.Fatalf("expected success response, got %+v", got)
+	}
+	if got.Outputs.PNG == nil || got.Outputs.PNG.Path != out {
+		t.Fatalf("unexpected png output: %+v", got.Outputs.PNG)
+	}
+}
+
+func TestMakeSlashMissingAllResolverPathsMapsToMissingSpriteFrame(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	assets, recipe := writeSlashParityCLIFixture(t, false)
+	out := filepath.Join(t.TempDir(), "sprite.png")
+
+	code := run([]string{"make", recipe, "--assets", assets, "--out", out, "--json"}, &stdout, &stderr)
+	if code != 3 {
+		t.Fatalf("expected exit code 3, got %d stderr=%q stdout=%q", code, stderr.String(), stdout.String())
+	}
+	got := decodeMakeResponse(t, stdout.Bytes())
+	if got.OK || len(got.Errors) != 1 || got.Errors[0].Code != "MISSING_SPRITE_FRAME" {
+		t.Fatalf("unexpected error response: %+v", got)
+	}
+}
+
 func TestMakeFallbackWarningInJSONAndReport(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	assets, recipe := writeReadinessCLIFixture(t, readinessCLIFixtureOptions{
@@ -1645,4 +1678,26 @@ func writeRenderFailureBatchManifestFixture(t *testing.T) (string, string) {
 }`, recipe, outDir)
 	writeTestFile(t, manifest, manifestText)
 	return assets, manifest
+}
+
+func writeSlashParityCLIFixture(t *testing.T, includeMappedSlash bool) (string, string) {
+	t.Helper()
+	root := t.TempDir()
+	assets := filepath.Join(root, "assets")
+
+	writeTestFile(t, filepath.Join(assets, "pack.json"), `{"schema_version":"1","id":"cli-slash-parity","name":"CLI Slash Parity","defaults":{"body_type":"male","animations":["slash"],"canvas_width":8}}`)
+	writeTestFile(t, filepath.Join(assets, "sheet_definitions", "body", "body_human.json"), `{"name":"Human Body","type_name":"body","layer_1":{"zPos":10,"male":"body/human/male/"},"animations":["slash"]}`)
+	writeTestFile(t, filepath.Join(assets, "sheet_definitions", "weapon", "sword_training.json"), `{"name":"Training Sword","type_name":"weapon","layer_1":{"zPos":30,"male":"weapon/sword/male/"},"animations":["slash"]}`)
+	writeTestFile(t, filepath.Join(assets, "palette_definitions", ".gitkeep"), "")
+	writeTestFile(t, filepath.Join(assets, "spritesheets", ".gitkeep"), "")
+
+	makeDeterministicLayerPNG(t, filepath.Join(assets, "spritesheets", "body", "human", "male", "slash.png"), color.RGBA{R: 40, G: 100, B: 200, A: 255})
+	if includeMappedSlash {
+		makeDeterministicLayerPNG(t, filepath.Join(assets, "spritesheets", "weapon", "sword", "male", "attack_slash", "front.png"), color.RGBA{R: 200, G: 40, B: 80, A: 255})
+		makeDeterministicLayerPNG(t, filepath.Join(assets, "spritesheets", "weapon", "sword", "male", "attack_slash", "pose_behind.png"), color.RGBA{R: 180, G: 20, B: 60, A: 255})
+	}
+
+	recipe := filepath.Join(root, "recipe.json")
+	writeTestFile(t, recipe, `{"body_type":"male","selections":{"body":{"id":"body_human"},"weapon":{"id":"sword_training"}}}`)
+	return assets, recipe
 }

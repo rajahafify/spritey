@@ -38,3 +38,5 @@
 ## [2026-05-10] compile | Updated make-command concept/index coverage for additive report output artifact metadata
 ## [2026-05-10] ingest | Batch make manifest v1 implementation documented (raw/notes/2026-05-10-batch-make-manifest-v1.md)
 ## [2026-05-10] compile | Updated make-command concept/index coverage for manifest-driven make-batch behavior
+## [2026-05-10] ingest | Path resolver parity implementation documented (raw/notes/2026-05-10-path-resolver-parity.md)
+## [2026-05-10] compile | Updated make-command concept/index coverage for Python-parity A/B/C/D frame lookup rules

@@ -18,16 +18,18 @@ import (
 )
 
 type MakeService struct {
-	validator RecipeValidator
-	loader    CatalogLoader
+	validator     RecipeValidator
+	loader        CatalogLoader
+	frameResolver SpriteFrameResolver
 }
 
 var outputPNGArtifactFn = computeOutputPNGArtifact
 
 func NewMakeService() MakeService {
 	return MakeService{
-		validator: NewRecipeValidator(),
-		loader:    NewCatalogLoader(),
+		validator:     NewRecipeValidator(),
+		loader:        NewCatalogLoader(),
+		frameResolver: NewSpriteFrameResolver(),
 	}
 }
 
@@ -90,7 +92,23 @@ func (service MakeService) Make(recipePath string, assetsPath string, outPath st
 	for frameIndex, animationID := range animationIDs {
 		frameOrigin := image.Pt(0, frameIndex*frameHeight)
 		for _, layer := range appliedLayers {
-			sourcePath := filepath.Join(assetsPath, "spritesheets", filepath.FromSlash(layer.Render.ResolvedPath), animationID+".png")
+			resolvedFramePath, found, err := service.frameResolver.ResolveFrame(assetsPath, layer.Render.ResolvedPath, animationID)
+			if err != nil {
+				return models.MakeResult{}, &models.MakeProblem{
+					Code:    "RENDER_FAILED",
+					Message: err.Error(),
+					Field:   "render",
+				}
+			}
+			if !found {
+				return models.MakeResult{}, &models.MakeProblem{
+					Code:    "RENDER_FAILED",
+					Message: fmt.Sprintf("sprite frame missing after validation: %s", path.Join("spritesheets", layer.Render.ResolvedPath, animationID+".png")),
+					Field:   "render",
+				}
+			}
+
+			sourcePath := filepath.Join(assetsPath, "spritesheets", filepath.FromSlash(resolvedFramePath))
 			file, err := os.Open(sourcePath)
 			if err != nil {
 				return models.MakeResult{}, &models.MakeProblem{
