@@ -41,6 +41,12 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 			return controllers.WriteInspectProblem(*problem, controllers.ExitInvalidCLIUsage, options.JSON, stdout, stderr)
 		}
 		return controllers.NewInspectController().InspectLayer(options, stdout, stderr)
+	case "validate":
+		options, problem := parseValidateOptions(args[1:])
+		if problem != nil {
+			return controllers.WriteValidateProblem(*problem, controllers.ExitInvalidCLIUsage, options.JSON, stdout, stderr)
+		}
+		return controllers.NewValidateController().Validate(options, stdout, stderr)
 	default:
 		return controllers.WriteProblem(
 			models.Problem{
@@ -54,6 +60,44 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 			stderr,
 		)
 	}
+}
+
+func parseValidateOptions(args []string) (controllers.ValidateOptions, *models.Problem) {
+	options := controllers.ValidateOptions{}
+	if len(args) == 0 {
+		return options, nil
+	}
+	if isFlag(args[0]) {
+		return parseValidateFlags(options, args)
+	}
+	options.RecipePath = args[0]
+	return parseValidateFlags(options, args[1:])
+}
+
+func parseValidateFlags(options controllers.ValidateOptions, args []string) (controllers.ValidateOptions, *models.Problem) {
+	for i := 0; i < len(args); i++ {
+		switch args[i] {
+		case "--json":
+			options.JSON = true
+		case "--assets":
+			if i+1 >= len(args) {
+				return options, &models.Problem{
+					Code:    "MISSING_ASSETS_VALUE",
+					Message: "--assets requires a value",
+					Field:   "assets",
+				}
+			}
+			options.AssetsPath = args[i+1]
+			i++
+		default:
+			return options, &models.Problem{
+				Code:    "UNKNOWN_ARGUMENT",
+				Message: fmt.Sprintf("unknown argument: %s", args[i]),
+				Field:   "argument",
+			}
+		}
+	}
+	return options, nil
 }
 
 func parseInspectOptions(args []string) (controllers.InspectLayerOptions, *models.Problem) {

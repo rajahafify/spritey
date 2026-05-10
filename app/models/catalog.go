@@ -50,6 +50,28 @@ type InspectLayerResult struct {
 	Credits         []Credit `json:"credits"`
 }
 
+type Recipe struct {
+	BodyType   string                     `json:"body_type"`
+	Selections map[string]RecipeSelection `json:"selections"`
+}
+
+type RecipeSelection struct {
+	ID             string `json:"id"`
+	PaletteVariant string `json:"palette_variant,omitempty"`
+}
+
+type RecipeValidationResult struct {
+	Path       string                      `json:"path"`
+	BodyType   string                      `json:"body_type"`
+	Selections []RecipeValidationSelection `json:"selections"`
+}
+
+type RecipeValidationSelection struct {
+	Category       string `json:"category"`
+	ID             string `json:"id"`
+	PaletteVariant string `json:"palette_variant,omitempty"`
+}
+
 type Credit struct {
 	File     string   `json:"file,omitempty"`
 	Notes    string   `json:"notes,omitempty"`

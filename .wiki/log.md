@@ -20,3 +20,5 @@
 ## [2026-05-10] compile | Added explicit nonexistent assets directory error to catalog foundation notes
 ## [2026-05-10] ingest | Inspect-layer implementation documented (raw/notes/2026-05-10-inspect-layer.md)
 ## [2026-05-10] compile | Added inspect-layer article and updated CLI/architecture articles
+## [2026-05-10] ingest | Recipe-validation implementation documented (raw/notes/2026-05-10-recipe-validation.md)
+## [2026-05-10] compile | Added recipe-validation article and updated CLI/architecture articles

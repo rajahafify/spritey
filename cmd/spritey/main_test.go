@@ -60,6 +60,25 @@ type inspectLayerTestResponse struct {
 	} `json:"errors"`
 }
 
+type validateRecipeTestResponse struct {
+	OK     bool `json:"ok"`
+	Recipe *struct {
+		Path       string `json:"path"`
+		BodyType   string `json:"body_type"`
+		Selections []struct {
+			Category       string `json:"category"`
+			ID             string `json:"id"`
+			PaletteVariant string `json:"palette_variant,omitempty"`
+		} `json:"selections"`
+	} `json:"recipe"`
+	Warnings []string `json:"warnings"`
+	Errors   []struct {
+		Code    string `json:"code"`
+		Message string `json:"message"`
+		Field   string `json:"field,omitempty"`
+	} `json:"errors"`
+}
+
 func TestCatalogJSONSuccess(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	assets := filepath.Join("..", "..", "testdata", "fixtures", "basic-assets")
@@ -282,6 +301,157 @@ func TestInspectLayerJSONInvalidAssetsDirectory(t *testing.T) {
 	}
 }
 
+func TestValidateRecipeJSONSuccess(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	assets := fixturePath("basic-assets")
+	recipe := filepath.Join("..", "..", "testdata", "fixtures", "recipes", "valid-basic.json")
+
+	code := run([]string{"validate", recipe, "--assets", assets, "--json"}, &stdout, &stderr)
+	if code != 0 {
+		t.Fatalf("expected exit code 0, got %d, stderr=%q stdout=%q", code, stderr.String(), stdout.String())
+	}
+	if stderr.Len() != 0 {
+		t.Fatalf("expected empty stderr, got %q", stderr.String())
+	}
+
+	got := decodeValidateRecipeResponse(t, stdout.Bytes())
+	if !got.OK {
+		t.Fatalf("expected ok response: %+v", got)
+	}
+	if got.Recipe == nil || got.Recipe.BodyType != "male" {
+		t.Fatalf("unexpected recipe: %+v", got.Recipe)
+	}
+	if len(got.Recipe.Selections) != 2 {
+		t.Fatalf("expected 2 selections, got %+v", got.Recipe.Selections)
+	}
+	if got.Recipe.Selections[0].Category != "body" || got.Recipe.Selections[0].ID != "body_human" {
+		t.Fatalf("unexpected first selection: %+v", got.Recipe.Selections[0])
+	}
+	if len(got.Errors) != 0 {
+		t.Fatalf("expected no errors, got %+v", got.Errors)
+	}
+}
+
+func TestValidateRecipeJSONUsesDefaultBodyType(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	assets := fixturePath("basic-assets")
+	recipe := filepath.Join("..", "..", "testdata", "fixtures", "recipes", "default-body-type.json")
+
+	code := run([]string{"validate", recipe, "--assets", assets, "--json"}, &stdout, &stderr)
+	if code != 0 {
+		t.Fatalf("expected exit code 0, got %d, stdout=%q", code, stdout.String())
+	}
+
+	got := decodeValidateRecipeResponse(t, stdout.Bytes())
+	if got.Recipe == nil || got.Recipe.BodyType != "male" {
+		t.Fatalf("expected default body type male, got %+v", got.Recipe)
+	}
+}
+
+func TestValidateRecipeJSONMissingRecipe(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+
+	code := run([]string{"validate", "--json"}, &stdout, &stderr)
+	if code != 2 {
+		t.Fatalf("expected exit code 2, got %d", code)
+	}
+
+	got := decodeValidateRecipeResponse(t, stdout.Bytes())
+	if got.OK || len(got.Errors) != 1 || got.Errors[0].Code != "MISSING_RECIPE" {
+		t.Fatalf("unexpected error response: %+v", got)
+	}
+}
+
+func TestValidateRecipeJSONMissingAssets(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	recipe := filepath.Join("..", "..", "testdata", "fixtures", "recipes", "valid-basic.json")
+
+	code := run([]string{"validate", recipe, "--json"}, &stdout, &stderr)
+	if code != 2 {
+		t.Fatalf("expected exit code 2, got %d", code)
+	}
+
+	got := decodeValidateRecipeResponse(t, stdout.Bytes())
+	if got.OK || len(got.Errors) != 1 || got.Errors[0].Code != "MISSING_ASSETS" {
+		t.Fatalf("unexpected error response: %+v", got)
+	}
+}
+
+func TestValidateRecipeJSONMissingRecipeFile(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	recipe := filepath.Join(t.TempDir(), "missing.json")
+
+	code := run([]string{"validate", recipe, "--assets", fixturePath("basic-assets"), "--json"}, &stdout, &stderr)
+	if code != 4 {
+		t.Fatalf("expected exit code 4, got %d", code)
+	}
+
+	got := decodeValidateRecipeResponse(t, stdout.Bytes())
+	if got.OK || len(got.Errors) != 1 || got.Errors[0].Code != "RECIPE_FILE_NOT_FOUND" {
+		t.Fatalf("unexpected error response: %+v", got)
+	}
+}
+
+func TestValidateRecipeJSONInvalidRecipeJSON(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	recipe := filepath.Join("..", "..", "testdata", "fixtures", "recipes", "invalid-json.json")
+
+	code := run([]string{"validate", recipe, "--assets", fixturePath("basic-assets"), "--json"}, &stdout, &stderr)
+	if code != 4 {
+		t.Fatalf("expected exit code 4, got %d", code)
+	}
+
+	got := decodeValidateRecipeResponse(t, stdout.Bytes())
+	if got.OK || len(got.Errors) != 1 || got.Errors[0].Code != "INVALID_RECIPE_JSON" {
+		t.Fatalf("unexpected error response: %+v", got)
+	}
+}
+
+func TestValidateRecipeJSONMissingSelections(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	recipe := filepath.Join("..", "..", "testdata", "fixtures", "recipes", "missing-selections.json")
+
+	code := run([]string{"validate", recipe, "--assets", fixturePath("basic-assets"), "--json"}, &stdout, &stderr)
+	if code != 4 {
+		t.Fatalf("expected exit code 4, got %d", code)
+	}
+
+	got := decodeValidateRecipeResponse(t, stdout.Bytes())
+	if got.OK || len(got.Errors) != 1 || got.Errors[0].Code != "MISSING_SELECTIONS" {
+		t.Fatalf("unexpected error response: %+v", got)
+	}
+}
+
+func TestValidateRecipeJSONUnknownLayer(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	recipe := filepath.Join("..", "..", "testdata", "fixtures", "recipes", "unknown-layer.json")
+
+	code := run([]string{"validate", recipe, "--assets", fixturePath("basic-assets"), "--json"}, &stdout, &stderr)
+	if code != 5 {
+		t.Fatalf("expected exit code 5, got %d", code)
+	}
+
+	got := decodeValidateRecipeResponse(t, stdout.Bytes())
+	if got.OK || len(got.Errors) != 1 || got.Errors[0].Code != "UNKNOWN_LAYER_ID" {
+		t.Fatalf("unexpected error response: %+v", got)
+	}
+}
+
+func TestValidateRecipeJSONUnsupportedBodyType(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	recipe := filepath.Join("..", "..", "testdata", "fixtures", "recipes", "unsupported-body-type.json")
+
+	code := run([]string{"validate", recipe, "--assets", fixturePath("basic-assets"), "--json"}, &stdout, &stderr)
+	if code != 5 {
+		t.Fatalf("expected exit code 5, got %d", code)
+	}
+
+	got := decodeValidateRecipeResponse(t, stdout.Bytes())
+	if got.OK || len(got.Errors) != 1 || got.Errors[0].Code != "UNSUPPORTED_BODY_TYPE" {
+		t.Fatalf("unexpected error response: %+v", got)
+	}
+}
+
 func decodeCatalogResponse(t *testing.T, data []byte) catalogTestResponse {
 	t.Helper()
 
@@ -300,6 +470,20 @@ func decodeInspectLayerResponse(t *testing.T, data []byte) inspectLayerTestRespo
 		t.Fatalf("failed to decode JSON %q: %v", string(data), err)
 	}
 	return got
+}
+
+func decodeValidateRecipeResponse(t *testing.T, data []byte) validateRecipeTestResponse {
+	t.Helper()
+
+	var got validateRecipeTestResponse
+	if err := json.Unmarshal(data, &got); err != nil {
+		t.Fatalf("failed to decode JSON %q: %v", string(data), err)
+	}
+	return got
+}
+
+func fixturePath(name string) string {
+	return filepath.Join("..", "..", "testdata", "fixtures", name)
 }
 
 func assertStrings(t *testing.T, got []string, want []string) {

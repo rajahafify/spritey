@@ -2,6 +2,7 @@
 title: "Go Rewrite Architecture"
 category: topic
 sources:
+  - raw/notes/2026-05-10-recipe-validation.md
   - raw/notes/2026-05-10-inspect-layer.md
   - raw/notes/2026-05-10-catalog-foundation.md
   - raw/repos/2026-05-10-spritey-repo-baseline.md
@@ -47,19 +48,19 @@ CLI parsing should stay thin. `cmd/spritey/main.go` should delegate to controlle
 
 ## Current State
 
-As of the inspect-layer slice, the root Go app has two metadata commands:
+As of the recipe-validation slice, the root Go app has three metadata commands:
 
 - `go.mod`
-- `cmd/spritey/main.go` routes `catalog` and `inspect layer`
-- `app/models` defines catalog, inspect, and error data
-- `app/services` loads asset pack metadata and performs exact layer lookup
+- `cmd/spritey/main.go` routes `catalog`, `inspect layer`, and `validate`
+- `app/models` defines catalog, inspect, recipe, validation, and error data
+- `app/services` loads asset pack metadata, performs exact layer lookup, and validates recipes against catalog metadata
 - `app/controllers` owns command orchestration and exit codes
 - `app/views` writes JSON responses
 - `Dockerfile`
 - `compose.yaml`
 - `Makefile`
 
-The app still has no recipe validation, renderer, or report generator.
+The app still has no renderer or report generator.
 
 Normal development should use Docker Compose through Make targets. Native Go is optional.
 
@@ -72,6 +73,7 @@ GitHub Actions should use Docker Compose through `make docker-ci`. Local develop
 ## Sources
 
 - [Spritey Repository Baseline](../../raw/repos/2026-05-10-spritey-repo-baseline.md) - current tree and implementation state.
+- [Recipe Validation Implementation](../../raw/notes/2026-05-10-recipe-validation.md) - third implemented metadata command.
 - [Inspect Layer Implementation](../../raw/notes/2026-05-10-inspect-layer.md) - second implemented metadata command.
 - [Catalog Foundation Implementation](../../raw/notes/2026-05-10-catalog-foundation.md) - first implemented command and MVC package split.
 - [Agent Rules and Constitution](../../raw/notes/2026-05-10-agent-rules-and-constitution.md) - architecture rules.

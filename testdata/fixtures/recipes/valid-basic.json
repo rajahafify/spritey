@@ -1,0 +1,12 @@
+{
+  "body_type": "male",
+  "selections": {
+    "body": {
+      "id": "body_human",
+      "palette_variant": "light"
+    },
+    "weapon": {
+      "id": "sword_training"
+    }
+  }
+}
