@@ -54,6 +54,17 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 		}
 		return controllers.NewValidateController().Validate(options, stdout, stderr)
 	case "make":
+		if len(args) > 1 && args[1] == "batch" {
+			options, problem := parseMakeBatchOptions(args[2:])
+			if problem != nil {
+				return controllers.WriteMakeBatchProblem(models.MakeBatchResult{}, models.MakeProblem{
+					Code:    problem.Code,
+					Message: problem.Message,
+					Field:   problem.Field,
+				}, controllers.ExitInvalidCLIUsage, options.JSON, stdout, stderr)
+			}
+			return controllers.NewMakeBatchController().Make(options, stdout, stderr)
+		}
 		options, problem := parseMakeOptions(args[1:])
 		if problem != nil {
 			return controllers.WriteMakeProblem(models.MakeOutputs{}, models.MakeProblem{
@@ -76,6 +87,36 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 			stderr,
 		)
 	}
+}
+
+func parseMakeBatchOptions(args []string) (controllers.MakeBatchOptions, *models.Problem) {
+	options := controllers.MakeBatchOptions{JSON: hasJSONFlag(args)}
+	if len(args) == 0 {
+		return options, nil
+	}
+	if !isFlag(args[0]) {
+		options.ManifestPath = args[0]
+		args = args[1:]
+	}
+	for i := 0; i < len(args); i++ {
+		switch args[i] {
+		case "--json":
+			options.JSON = true
+		case "--assets":
+			if i+1 >= len(args) {
+				return options, &models.Problem{Code: "MISSING_ASSETS_VALUE", Message: "--assets requires a value", Field: "assets"}
+			}
+			options.AssetsPath = args[i+1]
+			i++
+		default:
+			return options, &models.Problem{
+				Code:    "UNKNOWN_ARGUMENT",
+				Message: fmt.Sprintf("unknown argument: %s", args[i]),
+				Field:   "argument",
+			}
+		}
+	}
+	return options, nil
 }
 
 func parseMakeOptions(args []string) (controllers.MakeOptions, *models.Problem) {

@@ -2,6 +2,7 @@
 title: "Make Command"
 category: concept
 sources:
+  - raw/notes/2026-05-10-batch-make-manifest-v1.md
   - raw/notes/2026-05-10-make-report-artifact-integrity.md
   - raw/notes/2026-05-10-make-animation-strip-output.md
   - raw/notes/2026-05-10-make-report-provenance.md
@@ -11,12 +12,12 @@ sources:
 created: 2026-05-10
 updated: 2026-05-10
 tags: [spritey, make, render, report]
-summary: "Spritey's make command supports deterministic strip rendering, stable JSON/non-JSON output, readiness-gated validation, and additive report provenance plus output-artifact integrity metadata."
+summary: "Spritey's make commands support deterministic strip rendering, stable single/batch JSON and non-JSON output, readiness-gated validation, and additive report provenance plus output-artifact integrity metadata."
 ---
 
 # Make Command
 
-`spritey make` is Spritey's first rendering slice:
+`spritey make` is Spritey's core rendering slice:
 
 ```bash
 spritey make <recipe> --assets <dir> --out <png> [--report <json>] [--json]
@@ -34,6 +35,26 @@ Contract points in current implemented slices:
 - readiness warnings are propagated into make JSON `warnings` and report `warnings`;
 - non-JSON success output is deterministic and line-oriented for human operators;
 - render failures use `RENDER_FAILED` with exit code `6`.
+
+Batch make is available for manifest-driven runs:
+
+```bash
+spritey make batch <manifest.json> --assets <dir> [--json]
+```
+
+Batch behavior points:
+
+- manifest v1 shape is `{"schema_version":"1","jobs":[...]}`;
+- jobs execute sequentially in manifest order;
+- relative recipe/output/report paths resolve from manifest file directory;
+- existing `MakeService` is reused per job;
+- execution fails fast on first failed job;
+- JSON envelope remains stable with top-level keys:
+  - `ok`, `command`, `summary`, `jobs`, `warnings`, `errors`;
+- batch `command` value is `make-batch`;
+- manifest file/json/schema/empty-jobs issues return exit `4`;
+- CLI misuse returns exit `2`;
+- job failures map with existing make exit behavior (`3`/`6`) and include failing-job context in JSON error details.
 
 Report v1 now includes additive provenance and artifact integrity metadata:
 

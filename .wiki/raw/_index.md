@@ -8,6 +8,7 @@ Last updated: 2026-05-10
 
 | File | Summary | Tags | Updated |
 |------|---------|------|---------|
+| [notes/2026-05-10-batch-make-manifest-v1.md](notes/2026-05-10-batch-make-manifest-v1.md) | Eleventh Spritey product slice adds `make batch` manifest v1 with sequential fail-fast execution and stable batch output envelopes. | spritey, make, batch, manifest | 2026-05-10 |
 | [notes/2026-05-10-make-report-artifact-integrity.md](notes/2026-05-10-make-report-artifact-integrity.md) | Tenth Spritey product slice adds additive report artifact metadata for output PNG hash and byte-size integrity checks. | spritey, make, report, integrity | 2026-05-10 |
 | [notes/2026-05-10-make-animation-strip-output.md](notes/2026-05-10-make-animation-strip-output.md) | Ninth Spritey product slice changes make rendering to vertical animation-strip output while preserving CLI/report contracts. | spritey, make, animation, strip | 2026-05-10 |
 | [notes/2026-05-10-make-report-provenance.md](notes/2026-05-10-make-report-provenance.md) | Eighth Spritey product slice expands make report v1 with additive provenance metadata and deterministic composed-layer details. | spritey, make, report, provenance | 2026-05-10 |
@@ -29,6 +30,7 @@ Last updated: 2026-05-10
 
 ## Recent Changes
 
+- 2026-05-10: Added batch-make-manifest-v1 implementation note.
 - 2026-05-10: Added make-report-artifact-integrity implementation note.
 - 2026-05-10: Added make-animation-strip-output implementation note.
 - 2026-05-10: Added make-report-provenance implementation note.

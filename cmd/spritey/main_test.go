@@ -127,6 +127,43 @@ type makeTestResponse struct {
 	} `json:"errors"`
 }
 
+type makeBatchTestResponse struct {
+	OK      bool   `json:"ok"`
+	Command string `json:"command"`
+	Summary struct {
+		JobCount     int `json:"job_count"`
+		SuccessCount int `json:"success_count"`
+		FailedCount  int `json:"failed_count"`
+	} `json:"summary"`
+	Jobs []struct {
+		ID      string `json:"id"`
+		Recipe  string `json:"recipe"`
+		Outputs struct {
+			PNG *struct {
+				Path string `json:"path"`
+			} `json:"png"`
+			Report *struct {
+				Path string `json:"path"`
+			} `json:"report,omitempty"`
+		} `json:"outputs"`
+		Summary  map[string]interface{} `json:"summary"`
+		Warnings []string               `json:"warnings"`
+		Errors   []struct {
+			Code    string                 `json:"code"`
+			Message string                 `json:"message"`
+			Field   string                 `json:"field,omitempty"`
+			Details map[string]interface{} `json:"details,omitempty"`
+		} `json:"errors"`
+	} `json:"jobs"`
+	Warnings []string `json:"warnings"`
+	Errors   []struct {
+		Code    string                 `json:"code"`
+		Message string                 `json:"message"`
+		Field   string                 `json:"field,omitempty"`
+		Details map[string]interface{} `json:"details,omitempty"`
+	} `json:"errors"`
+}
+
 func TestCatalogJSONSuccess(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	assets := filepath.Join("..", "..", "testdata", "fixtures", "basic-assets")
@@ -1159,6 +1196,142 @@ func TestMakeFallbackWarningInJSONAndReport(t *testing.T) {
 	}
 }
 
+func TestMakeBatchJSONSuccessEnvelopeAndOrdering(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	assets, manifest := writeSuccessfulBatchManifestFixture(t)
+
+	code := run([]string{"make", "batch", manifest, "--assets", assets, "--json"}, &stdout, &stderr)
+	if code != 0 {
+		t.Fatalf("expected exit code 0, got %d stderr=%q stdout=%q", code, stderr.String(), stdout.String())
+	}
+
+	var parsed map[string]interface{}
+	if err := json.Unmarshal(stdout.Bytes(), &parsed); err != nil {
+		t.Fatal(err)
+	}
+	assertHasKeys(t, parsed, "ok", "command", "summary", "jobs", "warnings", "errors")
+	if len(parsed) != 6 {
+		t.Fatalf("expected stable top-level key set, got %+v", parsed)
+	}
+
+	got := decodeMakeBatchResponse(t, stdout.Bytes())
+	if !got.OK || got.Command != "make-batch" {
+		t.Fatalf("unexpected batch response: %+v", got)
+	}
+	if got.Summary.JobCount != 2 || got.Summary.SuccessCount != 2 || got.Summary.FailedCount != 0 {
+		t.Fatalf("unexpected batch summary: %+v", got.Summary)
+	}
+	if len(got.Jobs) != 2 {
+		t.Fatalf("expected two jobs, got %+v", got.Jobs)
+	}
+	if got.Jobs[0].ID != "job-a" || got.Jobs[1].ID != "job-b" {
+		t.Fatalf("expected manifest-order jobs, got %+v", got.Jobs)
+	}
+	if got.Jobs[0].Outputs.PNG == nil || got.Jobs[1].Outputs.PNG == nil {
+		t.Fatalf("expected png outputs for both jobs, got %+v", got.Jobs)
+	}
+}
+
+func TestMakeBatchJSONManifestFailureIsExit4(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	assets, manifest := writeBatchManifestIssueFixture(t, "{not-json}")
+
+	code := run([]string{"make", "batch", manifest, "--assets", assets, "--json"}, &stdout, &stderr)
+	if code != 4 {
+		t.Fatalf("expected exit code 4, got %d", code)
+	}
+
+	got := decodeMakeBatchResponse(t, stdout.Bytes())
+	if got.OK || len(got.Errors) != 1 || got.Errors[0].Code != "INVALID_BATCH_MANIFEST_JSON" {
+		t.Fatalf("unexpected manifest error response: %+v", got)
+	}
+}
+
+func TestMakeBatchJSONMissingManifestAndUnknownArgAreCLIUsage(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	assets := fixturePath("basic-assets")
+
+	code := run([]string{"make", "batch", "--assets", assets, "--json"}, &stdout, &stderr)
+	if code != 2 {
+		t.Fatalf("expected exit code 2 for missing manifest, got %d", code)
+	}
+	missingManifest := decodeMakeBatchResponse(t, stdout.Bytes())
+	if missingManifest.OK || len(missingManifest.Errors) != 1 || missingManifest.Errors[0].Code != "MISSING_MANIFEST" {
+		t.Fatalf("unexpected missing manifest response: %+v", missingManifest)
+	}
+
+	stdout.Reset()
+	stderr.Reset()
+	code = run([]string{"make", "batch", "manifest.json", "--assets", assets, "--out", "ignored.png", "--json"}, &stdout, &stderr)
+	if code != 2 {
+		t.Fatalf("expected exit code 2 for unknown argument, got %d", code)
+	}
+	unknownArg := decodeMakeBatchResponse(t, stdout.Bytes())
+	if unknownArg.OK || len(unknownArg.Errors) != 1 || unknownArg.Errors[0].Code != "UNKNOWN_ARGUMENT" {
+		t.Fatalf("unexpected unknown arg response: %+v", unknownArg)
+	}
+}
+
+func TestMakeBatchJSONJobFailureMapsToExit3AndIncludesFailingContext(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	assets, manifest := writeFailingBatchManifestFixture(t)
+
+	code := run([]string{"make", "batch", manifest, "--assets", assets, "--json"}, &stdout, &stderr)
+	if code != 3 {
+		t.Fatalf("expected exit code 3, got %d stderr=%q stdout=%q", code, stderr.String(), stdout.String())
+	}
+
+	got := decodeMakeBatchResponse(t, stdout.Bytes())
+	if got.OK || len(got.Jobs) != 1 {
+		t.Fatalf("expected fail-fast with one job result, got %+v", got)
+	}
+	if got.Jobs[0].ID != "bad-first" || len(got.Jobs[0].Errors) != 1 {
+		t.Fatalf("unexpected failing job payload: %+v", got.Jobs[0])
+	}
+	if got.Jobs[0].Errors[0].Code != "RECIPE_FILE_NOT_FOUND" {
+		t.Fatalf("expected recipe failure code, got %+v", got.Jobs[0].Errors[0])
+	}
+	if len(got.Errors) != 1 {
+		t.Fatalf("expected top-level failure, got %+v", got.Errors)
+	}
+	if got.Errors[0].Details["job_id"] != "bad-first" {
+		t.Fatalf("expected failing job context in top-level error details, got %+v", got.Errors[0].Details)
+	}
+}
+
+func TestMakeBatchJSONJobFailureMapsToExit6(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	assets, manifest := writeRenderFailureBatchManifestFixture(t)
+
+	code := run([]string{"make", "batch", manifest, "--assets", assets, "--json"}, &stdout, &stderr)
+	if code != 6 {
+		t.Fatalf("expected exit code 6, got %d stderr=%q stdout=%q", code, stderr.String(), stdout.String())
+	}
+
+	got := decodeMakeBatchResponse(t, stdout.Bytes())
+	if got.OK || len(got.Errors) != 1 || got.Errors[0].Code != "RENDER_FAILED" {
+		t.Fatalf("unexpected render failure response: %+v", got)
+	}
+}
+
+func TestMakeBatchTextSuccessSummaryIsDeterministic(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	assets, manifest := writeSuccessfulBatchManifestFixture(t)
+
+	code := run([]string{"make", "batch", manifest, "--assets", assets}, &stdout, &stderr)
+	if code != 0 {
+		t.Fatalf("expected exit code 0, got %d stderr=%q stdout=%q", code, stderr.String(), stdout.String())
+	}
+	if stderr.Len() != 0 {
+		t.Fatalf("expected empty stderr, got %q", stderr.String())
+	}
+
+	want := "ok: make-batch\njobs: 2\nsuccess: 2\nfailed: 0\njob 1: job-a ok\njob 2: job-b ok\n"
+	if stdout.String() != want {
+		t.Fatalf("unexpected summary output\nwant:\n%s\ngot:\n%s", want, stdout.String())
+	}
+}
+
 func decodeCatalogResponse(t *testing.T, data []byte) catalogTestResponse {
 	t.Helper()
 
@@ -1239,6 +1412,15 @@ func writeMinimalAssetsPack(t *testing.T, assets string) {
 func decodeMakeResponse(t *testing.T, data []byte) makeTestResponse {
 	t.Helper()
 	var got makeTestResponse
+	if err := json.Unmarshal(data, &got); err != nil {
+		t.Fatalf("failed to decode JSON %q: %v", string(data), err)
+	}
+	return got
+}
+
+func decodeMakeBatchResponse(t *testing.T, data []byte) makeBatchTestResponse {
+	t.Helper()
+	var got makeBatchTestResponse
 	if err := json.Unmarshal(data, &got); err != nil {
 		t.Fatalf("failed to decode JSON %q: %v", string(data), err)
 	}
@@ -1380,4 +1562,87 @@ func pngSHA256(t *testing.T, path string) string {
 	}
 	sum := sha256.Sum256(data)
 	return fmt.Sprintf("%x", sum[:])
+}
+
+func writeSuccessfulBatchManifestFixture(t *testing.T) (string, string) {
+	t.Helper()
+
+	assets, recipe := writeDeterministicMakeFixture(t)
+	root := t.TempDir()
+	manifest := filepath.Join(root, "batch.json")
+	manifestText := fmt.Sprintf(`{
+  "schema_version": "1",
+  "jobs": [
+    {
+      "id": "job-a",
+      "recipe": %q,
+      "out": %q,
+      "report": %q
+    },
+    {
+      "id": "job-b",
+      "recipe": %q,
+      "out": %q
+    }
+  ]
+}`, recipe, filepath.Join(root, "out", "job-a.png"), filepath.Join(root, "reports", "job-a.report.json"), recipe, filepath.Join(root, "out", "job-b.png"))
+	writeTestFile(t, manifest, manifestText)
+	return assets, manifest
+}
+
+func writeBatchManifestIssueFixture(t *testing.T, payload string) (string, string) {
+	t.Helper()
+	assets := fixturePath("basic-assets")
+	manifest := filepath.Join(t.TempDir(), "batch.json")
+	writeTestFile(t, manifest, payload)
+	return assets, manifest
+}
+
+func writeFailingBatchManifestFixture(t *testing.T) (string, string) {
+	t.Helper()
+
+	assets, recipe := writeDeterministicMakeFixture(t)
+	root := t.TempDir()
+	manifest := filepath.Join(root, "batch.json")
+	manifestText := fmt.Sprintf(`{
+  "schema_version": "1",
+  "jobs": [
+    {
+      "id": "bad-first",
+      "recipe": %q,
+      "out": %q
+    },
+    {
+      "id": "would-pass",
+      "recipe": %q,
+      "out": %q
+    }
+  ]
+}`, filepath.Join(root, "missing.json"), filepath.Join(root, "out", "bad.png"), recipe, filepath.Join(root, "out", "good.png"))
+	writeTestFile(t, manifest, manifestText)
+	return assets, manifest
+}
+
+func writeRenderFailureBatchManifestFixture(t *testing.T) (string, string) {
+	t.Helper()
+
+	assets, recipe := writeDeterministicMakeFixture(t)
+	root := t.TempDir()
+	outDir := filepath.Join(root, "out-dir")
+	if err := os.MkdirAll(outDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	manifest := filepath.Join(root, "batch.json")
+	manifestText := fmt.Sprintf(`{
+  "schema_version": "1",
+  "jobs": [
+    {
+      "id": "render-fail",
+      "recipe": %q,
+      "out": %q
+    }
+  ]
+}`, recipe, outDir)
+	writeTestFile(t, manifest, manifestText)
+	return assets, manifest
 }
