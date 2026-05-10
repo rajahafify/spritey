@@ -81,12 +81,14 @@ jobs:
             go build -trimpath -buildvcs=false -ldflags="-s -w" \
             -o "dist/${BIN}" ./cmd/spritey
 
+          cp USAGE.md dist/USAGE.md
+
           if [ "${{ matrix.goos }}" = "windows" ]; then
             ASSET="dist/${BASE}.zip"
-            python -c 'import os,sys,zipfile; bin_name=sys.argv[1]; asset=sys.argv[2]; zf=zipfile.ZipFile(asset, "w", compression=zipfile.ZIP_DEFLATED); zf.write(os.path.join("dist", bin_name), arcname=bin_name); zf.close()' "${BIN}" "${ASSET}"
+            python -c 'import os,sys,zipfile; bin_name=sys.argv[1]; asset=sys.argv[2]; zf=zipfile.ZipFile(asset, "w", compression=zipfile.ZIP_DEFLATED); zf.write(os.path.join("dist", bin_name), arcname=bin_name); zf.write(os.path.join("dist", "USAGE.md"), arcname="USAGE.md"); zf.close()' "${BIN}" "${ASSET}"
           else
             ASSET="dist/${BASE}.tar.gz"
-            tar -C dist -czf "${ASSET}" "${BIN}"
+            tar -C dist -czf "${ASSET}" "${BIN}" "USAGE.md"
           fi
 
           sha256sum "${ASSET}" > "${ASSET}.sha256"
