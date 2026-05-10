@@ -79,3 +79,5 @@ The repository now has:
 GitHub Actions follows the Docker Compose route. Local validation can use native Go when Docker is unavailable.
 
 Build commands use `-buildvcs=false` so Docker-mounted CI builds do not fail when Go cannot stamp VCS metadata from the mounted checkout.
+
+The workflow uses `actions/checkout@v6` so CI runs on the Node 24-compatible checkout action line.

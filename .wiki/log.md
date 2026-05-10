@@ -14,3 +14,4 @@
 ## [2026-05-10] compile | Updated go-rewrite-architecture with CI and test baseline
 ## [2026-05-10] ingest | Added Makefile local CI fallback from Docker Compose to native Go
 ## [2026-05-10] ingest | Disabled Go VCS stamping for CI build commands to avoid Docker-mounted checkout failures
+## [2026-05-10] ingest | Updated GitHub Actions checkout action to Node 24-compatible v6
