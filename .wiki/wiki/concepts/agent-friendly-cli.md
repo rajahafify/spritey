@@ -2,6 +2,7 @@
 title: "Agent-Friendly CLI"
 category: concept
 sources:
+  - raw/notes/2026-05-10-make-human-output.md
   - raw/notes/2026-05-10-make-command.md
   - raw/notes/2026-05-10-assets-validation.md
   - raw/notes/2026-05-10-recipe-validation.md
@@ -38,7 +39,7 @@ spritey validate recipe.json --assets ./assets --json
 spritey make recipe.json --assets ./assets --out output/sprite.png --report output/sprite.report.json
 ```
 
-The first implemented product slice is `spritey catalog --assets <dir> --json`. The second implemented slice is `spritey inspect layer <layer-id> --assets <dir> --json`. The third implemented slice is `spritey validate <recipe-path> --assets <dir> --json`. The fourth implemented slice is `spritey assets validate --assets <dir> --json`. The fifth implemented slice is `spritey make <recipe> --assets <dir> --out <png> [--report <json>] [--json]`.
+The first implemented product slice is `spritey catalog --assets <dir> --json`. The second implemented slice is `spritey inspect layer <layer-id> --assets <dir> --json`. The third implemented slice is `spritey validate <recipe-path> --assets <dir> --json`. The fourth implemented slice is `spritey assets validate --assets <dir> --json`. The fifth implemented slice is `spritey make <recipe> --assets <dir> --out <png> [--report <json>] [--json]`. The sixth implemented slice adds deterministic non-JSON success output for `spritey make`.
 
 ## Design Implications
 
@@ -61,6 +62,7 @@ The first implemented product slice is `spritey catalog --assets <dir> --json`. 
 ## Sources
 
 - [Make Command Implementation](../../raw/notes/2026-05-10-make-command.md) - fifth implemented product slice.
+- [Make Human Output Implementation](../../raw/notes/2026-05-10-make-human-output.md) - sixth implemented product slice.
 - [Assets Validation Implementation](../../raw/notes/2026-05-10-assets-validation.md) - fourth implemented product slice.
 - [Recipe Validation Implementation](../../raw/notes/2026-05-10-recipe-validation.md) - third implemented product slice.
 - [Inspect Layer Implementation](../../raw/notes/2026-05-10-inspect-layer.md) - second implemented product slice.

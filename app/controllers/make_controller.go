@@ -63,7 +63,10 @@ func (controller MakeController) Make(options MakeOptions, stdout io.Writer, std
 		return ExitSuccess
 	}
 
-	fmt.Fprintf(stdout, "ok: %s\n", result.Outputs.PNG.Path)
+	if err := views.WriteMakeText(stdout, result); err != nil {
+		fmt.Fprintln(stderr, err)
+		return ExitGeneralError
+	}
 	return ExitSuccess
 }
 

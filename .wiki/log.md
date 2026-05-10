@@ -26,3 +26,5 @@
 ## [2026-05-10] compile | Added assets-validation article and updated CLI/architecture/assets articles
 ## [2026-05-10] ingest | Make-command implementation documented (raw/notes/2026-05-10-make-command.md)
 ## [2026-05-10] compile | Added make-command article and updated CLI architecture/contract coverage through fifth slice
+## [2026-05-10] ingest | Make human-output implementation documented (raw/notes/2026-05-10-make-human-output.md)
+## [2026-05-10] compile | Updated make-command and agent-friendly-cli articles for deterministic non-JSON output sixth slice

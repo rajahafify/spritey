@@ -6,7 +6,7 @@ Last updated: 2026-05-10
 
 ## Statistics
 
-- Sources: 7 raw documents
+- Sources: 9 raw documents
 - Articles: 8 compiled wiki articles
 - Inventory records: 0 tracked items
 - Datasets: 0 manifests
@@ -32,6 +32,7 @@ Last updated: 2026-05-10
 
 ## Recent Changes
 
+- 2026-05-10: Implemented make non-JSON deterministic output (spec 006) and documented sixth CLI slice.
 - 2026-05-10: Implemented make command (spec 005) with minimal render pipeline, report v1, and deterministic tests.
 - 2026-05-10: Implemented assets validation and documented the fourth CLI slice.
 - 2026-05-10: Implemented recipe validation and documented the third CLI slice.

@@ -741,6 +741,52 @@ func TestMakeJSONSuccessWithoutReport(t *testing.T) {
 	}
 }
 
+func TestMakeTextSuccessWithReport(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	assets, recipe := writeDeterministicMakeFixture(t)
+	out := filepath.Join(t.TempDir(), "sprite.png")
+	report := filepath.Join(t.TempDir(), "sprite.report.json")
+
+	code := run([]string{"make", recipe, "--assets", assets, "--out", out, "--report", report}, &stdout, &stderr)
+	if code != 0 {
+		t.Fatalf("expected exit code 0, got %d stderr=%q stdout=%q", code, stderr.String(), stdout.String())
+	}
+	if stderr.Len() != 0 {
+		t.Fatalf("expected empty stderr, got %q", stderr.String())
+	}
+
+	want := fmt.Sprintf(
+		"ok: make\npng: %s\nreport: %s\nframe_count: 2\ncanvas: 8x8\nanimation_count: 2\n",
+		out,
+		report,
+	)
+	if stdout.String() != want {
+		t.Fatalf("unexpected stdout\nwant:\n%s\ngot:\n%s", want, stdout.String())
+	}
+}
+
+func TestMakeTextSuccessWithoutReport(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	assets, recipe := writeDeterministicMakeFixture(t)
+	out := filepath.Join(t.TempDir(), "sprite.png")
+
+	code := run([]string{"make", recipe, "--assets", assets, "--out", out}, &stdout, &stderr)
+	if code != 0 {
+		t.Fatalf("expected exit code 0, got %d stderr=%q stdout=%q", code, stderr.String(), stdout.String())
+	}
+	if stderr.Len() != 0 {
+		t.Fatalf("expected empty stderr, got %q", stderr.String())
+	}
+
+	want := fmt.Sprintf(
+		"ok: make\npng: %s\nframe_count: 2\ncanvas: 8x8\nanimation_count: 2\n",
+		out,
+	)
+	if stdout.String() != want {
+		t.Fatalf("unexpected stdout\nwant:\n%s\ngot:\n%s", want, stdout.String())
+	}
+}
+
 func TestMakeMissingRecipe(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	code := run([]string{"make", "--assets", "x", "--out", "y", "--json"}, &stdout, &stderr)
@@ -774,6 +820,20 @@ func TestMakeMissingOut(t *testing.T) {
 	got := decodeMakeResponse(t, stdout.Bytes())
 	if got.OK || got.Errors[0].Code != "MISSING_OUT" {
 		t.Fatalf("unexpected response: %+v", got)
+	}
+}
+
+func TestMakeTextMissingOut(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	code := run([]string{"make", "recipe.json", "--assets", "x"}, &stdout, &stderr)
+	if code != 2 {
+		t.Fatalf("expected exit code 2, got %d", code)
+	}
+	if stdout.Len() != 0 {
+		t.Fatalf("expected empty stdout, got %q", stdout.String())
+	}
+	if stderr.String() != "MISSING_OUT: --out is required\n" {
+		t.Fatalf("unexpected stderr: %q", stderr.String())
 	}
 }
 

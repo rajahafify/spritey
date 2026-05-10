@@ -8,6 +8,7 @@ Last updated: 2026-05-10
 
 | File | Summary | Tags | Updated |
 |------|---------|------|---------|
+| [2026-05-10-make-human-output.md](2026-05-10-make-human-output.md) | Sixth Spritey product slice adds deterministic non-JSON output for make command success paths. | spritey, make, cli | 2026-05-10 |
 | [2026-05-10-make-command.md](2026-05-10-make-command.md) | Fifth Spritey product slice implements make render command with optional report v1 and stable JSON envelopes. | spritey, make, render | 2026-05-10 |
 | [2026-05-10-recipe-validation.md](2026-05-10-recipe-validation.md) | Third Spritey product slice implements metadata-only recipe validation. | spritey, validate, recipes | 2026-05-10 |
 | [2026-05-10-inspect-layer.md](2026-05-10-inspect-layer.md) | Second Spritey product slice implements inspect-layer JSON output and structured lookup errors. | spritey, inspect, cli | 2026-05-10 |
@@ -17,6 +18,7 @@ Last updated: 2026-05-10
 
 ## Recent Changes
 
+- 2026-05-10: Added make-human-output implementation source note.
 - 2026-05-10: Added make-command implementation source note.
 - 2026-05-10: Added recipe-validation implementation source note.
 - 2026-05-10: Added inspect-layer implementation source note.
