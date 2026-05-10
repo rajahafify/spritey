@@ -2,14 +2,14 @@
 
 > Compiled Spritey knowledge articles.
 
-Last updated: 2026-05-10
+Last updated: 2026-05-11
 
 ## Contents
 
 | File | Summary | Tags | Updated |
 |------|---------|------|---------|
 | [concepts/agent-friendly-cli.md](concepts/agent-friendly-cli.md) | Spritey's CLI is designed for agents through file-based inputs, explicit outputs, validation, JSON output, and stable errors. | spritey, cli, agents | 2026-05-10 |
-| [concepts/make-command.md](concepts/make-command.md) | Spritey's make slices provide Python-parity frame path resolution, deterministic strip output, readiness-gated validation, and stable single/batch envelopes with additive report metadata. | spritey, make, render | 2026-05-10 |
+| [concepts/make-command.md](concepts/make-command.md) | Spritey's make slices provide Python-parity frame path resolution and LPC row/layout behavior, deterministic strip output, readiness-gated validation, and stable single/batch envelopes with additive report metadata. | spritey, make, render | 2026-05-11 |
 | [concepts/assets-validation.md](concepts/assets-validation.md) | Spritey's fourth product slice validates minimum compatible assets-pack structure. | spritey, assets, validate | 2026-05-10 |
 | [concepts/catalog-foundation.md](concepts/catalog-foundation.md) | Spritey's first product slice implements deterministic catalog JSON for compatible assets. | spritey, catalog, cli | 2026-05-10 |
 | [concepts/compatible-assets.md](concepts/compatible-assets.md) | Spritey treats assets as compatible packs with pack.json defaults; assets are user-provided at runtime. | spritey, assets, pack-json | 2026-05-10 |
@@ -20,6 +20,7 @@ Last updated: 2026-05-10
 
 ## Recent Changes
 
+- 2026-05-11: Updated make-command article for Python compositor LPC animation/layout parity behavior (spec 013).
 - 2026-05-10: Updated make-command article for Python-parity A/B/C/D frame resolver behavior (spec 012).
 - 2026-05-10: Updated make-command article for manifest-driven `make batch` v1 behavior (spec 011).
 - 2026-05-10: Updated make-command article for additive report artifact-integrity metadata (spec 010).

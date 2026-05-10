@@ -2,6 +2,7 @@
 title: "Make Command"
 category: concept
 sources:
+  - raw/notes/2026-05-11-make-animation-layout-parity.md
   - raw/notes/2026-05-10-path-resolver-parity.md
   - raw/notes/2026-05-10-batch-make-manifest-v1.md
   - raw/notes/2026-05-10-make-report-artifact-integrity.md
@@ -11,9 +12,9 @@ sources:
   - raw/notes/2026-05-10-make-human-output.md
   - raw/notes/2026-05-10-make-command.md
 created: 2026-05-10
-updated: 2026-05-10
+updated: 2026-05-11
 tags: [spritey, make, render, report]
-summary: "Spritey's make commands support Python-parity path resolution, deterministic strip rendering, stable single/batch JSON and non-JSON output, readiness-gated validation, and additive report provenance plus output-artifact integrity metadata."
+summary: "Spritey's make commands support Python-parity path resolution and LPC row/layout behavior, deterministic strip rendering, stable single/batch JSON and non-JSON output, readiness-gated validation, and additive report provenance plus output-artifact integrity metadata."
 ---
 
 # Make Command
@@ -33,6 +34,11 @@ Contract points in current implemented slices:
   3) `{prefix}/{anim}/*.png`,
   4) mapped slash/thrust weapon dirs (`attack_slash`/`attack_thrust`) excluding lowercase `behind` filenames;
 - slash/thrust structure-C paths win over mapped structure-D paths when both exist;
+- render row emission follows fixed LPC order (`spellcast`, `thrust`, `walk`, `slash`, `shoot`, `hurt`) instead of pack default animation order;
+- per LPC row, missing layer frame is skipped non-fatally and rows emit only when at least one layer contributes;
+- first contributing layer sets row height; subsequent layers are padded/clipped to that row height before alpha compositing;
+- strip width is fixed at `832` and emitted rows are stacked vertically;
+- if no LPC rows emit, make writes a transparent `832x256` PNG;
 - render-input readiness failures such as `MISSING_SPRITE_FRAME` are treated as input-validation failures (exit `3`), not render failures;
 - output PNG path is explicit and required;
 - report output is optional and uses additive report schema v1 provenance fields;
@@ -70,7 +76,7 @@ Report v1 now includes additive provenance and artifact integrity metadata:
 - deterministic composed-layer entries with category, z-order, resolved body-type/path, palette variant, and credits;
 - `artifacts.output_png.sha256` and `artifacts.output_png.bytes` from the written output PNG.
 
-Current render pipeline remains intentionally minimal and deterministic for testing: each required animation is composed into one strip row using ordered layer composition plus deterministic report field ordering.
+Current render pipeline remains intentionally minimal and deterministic for testing: LPC-order rows are composed from available layer frames, then stacked into one deterministic strip with deterministic report field ordering.
 
 Non-JSON success output format:
 

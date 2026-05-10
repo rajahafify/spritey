@@ -2,12 +2,13 @@
 
 > Immutable source material ingested for the Spritey wiki.
 
-Last updated: 2026-05-10
+Last updated: 2026-05-11
 
 ## Contents
 
 | File | Summary | Tags | Updated |
 |------|---------|------|---------|
+| [notes/2026-05-11-make-animation-layout-parity.md](notes/2026-05-11-make-animation-layout-parity.md) | Thirteenth Spritey product slice aligns make animation row emission and strip layout with Python compositor LPC behavior. | spritey, make, animation, layout | 2026-05-11 |
 | [notes/2026-05-10-path-resolver-parity.md](notes/2026-05-10-path-resolver-parity.md) | Twelfth Spritey product slice aligns validate/make frame lookup with Python compositor A/B/C/D path resolver rules. | spritey, make, validate, resolver | 2026-05-10 |
 | [notes/2026-05-10-batch-make-manifest-v1.md](notes/2026-05-10-batch-make-manifest-v1.md) | Eleventh Spritey product slice adds `make batch` manifest v1 with sequential fail-fast execution and stable batch output envelopes. | spritey, make, batch, manifest | 2026-05-10 |
 | [notes/2026-05-10-make-report-artifact-integrity.md](notes/2026-05-10-make-report-artifact-integrity.md) | Tenth Spritey product slice adds additive report artifact metadata for output PNG hash and byte-size integrity checks. | spritey, make, report, integrity | 2026-05-10 |
@@ -31,6 +32,7 @@ Last updated: 2026-05-10
 
 ## Recent Changes
 
+- 2026-05-11: Added make-animation-layout-parity implementation note.
 - 2026-05-10: Added path-resolver-parity implementation note.
 - 2026-05-10: Added batch-make-manifest-v1 implementation note.
 - 2026-05-10: Added make-report-artifact-integrity implementation note.

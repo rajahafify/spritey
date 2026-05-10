@@ -2,16 +2,16 @@
 
 > Project-local wiki for the Spritey Go CLI rewrite.
 
-Last updated: 2026-05-10
+Last updated: 2026-05-11
 
 ## Statistics
 
-- Sources: 15 raw documents
+- Sources: 16 raw documents
 - Articles: 8 compiled wiki articles
 - Inventory records: 0 tracked items
 - Datasets: 0 manifests
 - Outputs: 0 generated artifacts
-- Last compiled: 2026-05-10
+- Last compiled: 2026-05-11
 - Last lint: never
 
 ## Quick Navigation
@@ -32,6 +32,7 @@ Last updated: 2026-05-10
 
 ## Recent Changes
 
+- 2026-05-11: Implemented make animation/layout parity with Python compositor LPC row order, fixed 832 strip width, row-height compositing parity, and 832x256 fallback behavior (spec 013).
 - 2026-05-10: Implemented path resolver parity with Python compositor A/B/C/D lookup rules for validate/make frame discovery (spec 012).
 - 2026-05-10: Implemented batch make manifest v1 (spec 011) with sequential fail-fast jobs, stable batch envelopes, and manifest-relative path resolution.
 - 2026-05-10: Implemented make report artifact integrity (spec 010) with additive report PNG hash/byte metadata derived from written output.

@@ -2,12 +2,13 @@
 
 > Project notes and local decision sources.
 
-Last updated: 2026-05-10
+Last updated: 2026-05-11
 
 ## Contents
 
 | File | Summary | Tags | Updated |
 |------|---------|------|---------|
+| [2026-05-11-make-animation-layout-parity.md](2026-05-11-make-animation-layout-parity.md) | Thirteenth Spritey product slice aligns make animation row emission and strip layout with the Python compositor LPC flow. | spritey, make, animation, layout | 2026-05-11 |
 | [2026-05-10-path-resolver-parity.md](2026-05-10-path-resolver-parity.md) | Twelfth Spritey product slice aligns validate/make frame lookup with Python compositor A/B/C/D path resolver rules. | spritey, make, validate, resolver | 2026-05-10 |
 | [2026-05-10-batch-make-manifest-v1.md](2026-05-10-batch-make-manifest-v1.md) | Eleventh Spritey product slice adds `make batch` manifest v1 with sequential fail-fast execution and stable batch output envelopes. | spritey, make, batch, manifest | 2026-05-10 |
 | [2026-05-10-make-report-artifact-integrity.md](2026-05-10-make-report-artifact-integrity.md) | Tenth Spritey product slice adds additive report artifact metadata for output PNG hash and byte size integrity. | spritey, make, report, integrity | 2026-05-10 |
@@ -24,6 +25,7 @@ Last updated: 2026-05-10
 
 ## Recent Changes
 
+- 2026-05-11: Added make-animation-layout-parity implementation source note.
 - 2026-05-10: Added path-resolver-parity implementation source note.
 - 2026-05-10: Added batch-make-manifest-v1 implementation source note.
 - 2026-05-10: Added make-report-artifact-integrity implementation source note.

@@ -67,8 +67,11 @@ func TestMakeServiceReportV1FieldsAndOrdering(t *testing.T) {
 
 	render := got["render"].(map[string]interface{})
 	animationIDs := render["animation_ids"].([]interface{})
-	if len(animationIDs) != 2 || animationIDs[0].(string) != "idle" || animationIDs[1].(string) != "walk" {
+	if len(animationIDs) != 1 || animationIDs[0].(string) != "walk" {
 		t.Fatalf("unexpected animation ordering: %+v", animationIDs)
+	}
+	if int(render["frame_count"].(float64)) != 1 {
+		t.Fatalf("unexpected report frame_count: %+v", render["frame_count"])
 	}
 
 	layers := got["layers"].(map[string]interface{})
@@ -92,7 +95,7 @@ func TestMakeServiceDeterministicPNGHashAndDimensions(t *testing.T) {
 	if problem != nil {
 		t.Fatalf("expected success, got %+v", problem)
 	}
-	if result.Summary.Canvas.Width != 8 || result.Summary.Canvas.Height != 16 {
+	if result.Summary.Canvas.Width != 832 || result.Summary.Canvas.Height != 8 {
 		t.Fatalf("unexpected canvas size: %+v", result.Summary.Canvas)
 	}
 
@@ -106,21 +109,31 @@ func TestMakeServiceDeterministicPNGHashAndDimensions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if img.Bounds().Dx() != 8 || img.Bounds().Dy() != 16 {
+	if img.Bounds().Dx() != 832 || img.Bounds().Dy() != 8 {
 		t.Fatalf("unexpected dimensions: %dx%d", img.Bounds().Dx(), img.Bounds().Dy())
 	}
-	if got := fileSHA256(t, out); got != "d0d2f874acf5b8784360cd9df7c085560474710819235d27e82ad469680caf72" {
+	if got := fileSHA256(t, out); got != "2df8e9b2d6cd1b5c732cead7598e355558517ad667b6cec34721c4019c0c268a" {
 		t.Fatalf("unexpected hash: %s", got)
 	}
 }
 
-func TestMakeServiceStripRowsDifferByAnimationFrame(t *testing.T) {
-	assets, recipe := writeMakeFixture(t)
+func TestMakeServiceUsesFixedLPCAnimationOrderAndSkipsMissingLayerFrames(t *testing.T) {
+	assets, recipe := writeMakeLPCParityFixture(t, makeLPCParityFixtureOptions{
+		requiredAnimations: []string{"idle", "walk"},
+		bodyWalkSize:       image.Pt(8, 8),
+		weaponWalkSize:     image.Pt(8, 8),
+		includeBodySlash:   true,
+		includeWeaponSlash: false,
+	})
 	out := filepath.Join(t.TempDir(), "sprite.png")
+	report := filepath.Join(t.TempDir(), "sprite.report.json")
 
-	_, problem := NewMakeService().Make(recipe, assets, out, "")
+	result, problem := NewMakeService().Make(recipe, assets, out, report)
 	if problem != nil {
 		t.Fatalf("expected success, got %+v", problem)
+	}
+	if result.Summary.FrameCount != 2 || result.Summary.AnimationCount != 2 {
+		t.Fatalf("expected two emitted rows, got %+v", result.Summary)
 	}
 
 	file, err := os.Open(out)
@@ -133,15 +146,71 @@ func TestMakeServiceStripRowsDifferByAnimationFrame(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if img.Bounds().Dx() != 832 || img.Bounds().Dy() != 16 {
+		t.Fatalf("unexpected dimensions: %dx%d", img.Bounds().Dx(), img.Bounds().Dy())
+	}
 
 	top := color.RGBAModel.Convert(img.At(2, 2)).(color.RGBA)
 	next := color.RGBAModel.Convert(img.At(2, 10)).(color.RGBA)
-	if top == next {
-		t.Fatalf("expected per-frame strip rows to differ, got same pixel RGBA=%+v", top)
+	if top != (color.RGBA{R: 214, G: 50, B: 90, A: 255}) {
+		t.Fatalf("expected first emitted row to be walk overlay, got %+v", top)
+	}
+	if next != (color.RGBA{R: 74, G: 130, B: 180, A: 255}) {
+		t.Fatalf("expected second emitted row to be body slash, got %+v", next)
+	}
+
+	reportData, err := os.ReadFile(report)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var reportJSON map[string]interface{}
+	if err := json.Unmarshal(reportData, &reportJSON); err != nil {
+		t.Fatal(err)
+	}
+	render := reportJSON["render"].(map[string]interface{})
+	animationIDs := render["animation_ids"].([]interface{})
+	if len(animationIDs) != 2 || animationIDs[0] != "walk" || animationIDs[1] != "slash" {
+		t.Fatalf("unexpected emitted animation ids: %+v", animationIDs)
+	}
+	if int(render["frame_count"].(float64)) != 2 {
+		t.Fatalf("unexpected emitted frame_count: %+v", render["frame_count"])
 	}
 }
 
-func TestMakeServiceSingleAnimationRemainsSingleFrame(t *testing.T) {
+func TestMakeServiceRowHeightUsesFirstContributingLayerAndPadsSubsequentLayers(t *testing.T) {
+	assets, recipe := writeMakeLPCParityFixture(t, makeLPCParityFixtureOptions{
+		requiredAnimations: []string{"idle", "walk"},
+		bodyWalkSize:       image.Pt(8, 6),
+		weaponWalkSize:     image.Pt(8, 10),
+	})
+	out := filepath.Join(t.TempDir(), "sprite.png")
+
+	result, problem := NewMakeService().Make(recipe, assets, out, "")
+	if problem != nil {
+		t.Fatalf("expected success, got %+v", problem)
+	}
+	if result.Summary.FrameCount != 1 {
+		t.Fatalf("expected single emitted row, got %d", result.Summary.FrameCount)
+	}
+	if result.Summary.Canvas.Width != 832 || result.Summary.Canvas.Height != 6 {
+		t.Fatalf("unexpected canvas size for first-layer row height parity: %+v", result.Summary.Canvas)
+	}
+
+	file, err := os.Open(out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer file.Close()
+	img, err := png.Decode(file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if img.Bounds().Dx() != 832 || img.Bounds().Dy() != 6 {
+		t.Fatalf("unexpected rendered dimensions: %dx%d", img.Bounds().Dx(), img.Bounds().Dy())
+	}
+}
+
+func TestMakeServiceNoEmittedRowsReturnsTransparentFallbackCanvas(t *testing.T) {
 	assets, recipe := writeMakeReadinessFixture(t, makeReadinessFixtureOptions{
 		recipeBodyType:      "male",
 		missingFallback:     "male",
@@ -156,11 +225,24 @@ func TestMakeServiceSingleAnimationRemainsSingleFrame(t *testing.T) {
 	if problem != nil {
 		t.Fatalf("expected success, got %+v", problem)
 	}
-	if result.Summary.FrameCount != 1 {
-		t.Fatalf("expected single frame, got %d", result.Summary.FrameCount)
+	if result.Summary.FrameCount != 0 || result.Summary.AnimationCount != 0 {
+		t.Fatalf("expected no emitted rows in summary, got %+v", result.Summary)
 	}
-	if result.Summary.Canvas.Width != 8 || result.Summary.Canvas.Height != 8 {
-		t.Fatalf("unexpected canvas size for single animation: %+v", result.Summary.Canvas)
+	if result.Summary.Canvas.Width != 832 || result.Summary.Canvas.Height != 256 {
+		t.Fatalf("unexpected fallback canvas: %+v", result.Summary.Canvas)
+	}
+
+	file, err := os.Open(out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer file.Close()
+	img, err := png.Decode(file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if img.Bounds().Dx() != 832 || img.Bounds().Dy() != 256 {
+		t.Fatalf("unexpected fallback png dimensions: %dx%d", img.Bounds().Dx(), img.Bounds().Dy())
 	}
 }
 
@@ -333,6 +415,60 @@ func writeMakeFixture(t *testing.T) (string, string) {
 	return assets, recipe
 }
 
+type makeLPCParityFixtureOptions struct {
+	requiredAnimations []string
+	bodyWalkSize       image.Point
+	weaponWalkSize     image.Point
+	includeBodySlash   bool
+	includeWeaponSlash bool
+}
+
+func writeMakeLPCParityFixture(t *testing.T, opts makeLPCParityFixtureOptions) (string, string) {
+	t.Helper()
+
+	requiredAnimations := opts.requiredAnimations
+	if len(requiredAnimations) == 0 {
+		requiredAnimations = []string{"idle", "walk"}
+	}
+	bodyWalkSize := opts.bodyWalkSize
+	if bodyWalkSize.X <= 0 || bodyWalkSize.Y <= 0 {
+		bodyWalkSize = image.Pt(8, 8)
+	}
+	weaponWalkSize := opts.weaponWalkSize
+	if weaponWalkSize.X <= 0 || weaponWalkSize.Y <= 0 {
+		weaponWalkSize = image.Pt(8, 8)
+	}
+
+	animationsJSON := `["` + requiredAnimations[0] + `"`
+	for i := 1; i < len(requiredAnimations); i++ {
+		animationsJSON += `,"` + requiredAnimations[i] + `"`
+	}
+	animationsJSON += `]`
+
+	root := t.TempDir()
+	assets := filepath.Join(root, "assets")
+	writeFixtureFile(t, filepath.Join(assets, "pack.json"), `{"schema_version":"1","id":"make-lpc-parity","name":"Make LPC Parity","defaults":{"body_type":"male","animations":`+animationsJSON+`,"canvas_width":8}}`)
+	writeFixtureFile(t, filepath.Join(assets, "sheet_definitions", "body", "body_human.json"), `{"name":"Human Body","type_name":"body","layer_1":{"zPos":10,"male":"body/human/male/"},"animations":["idle","walk","slash"]}`)
+	writeFixtureFile(t, filepath.Join(assets, "sheet_definitions", "weapon", "sword_training.json"), `{"name":"Training Sword","type_name":"weapon","layer_1":{"zPos":30,"male":"weapon/sword/male/"},"animations":["idle","walk","slash"]}`)
+	writeFixtureFile(t, filepath.Join(assets, "palette_definitions", ".gitkeep"), "")
+	writeFixtureFile(t, filepath.Join(assets, "spritesheets", ".gitkeep"), "")
+
+	writeLayerPNG(t, filepath.Join(assets, "spritesheets", "body", "human", "male", "idle.png"), color.RGBA{R: 40, G: 100, B: 200, A: 255})
+	writeLayerPNG(t, filepath.Join(assets, "spritesheets", "weapon", "sword", "male", "idle.png"), color.RGBA{R: 200, G: 40, B: 80, A: 255})
+	writeLayerPNGWithSize(t, filepath.Join(assets, "spritesheets", "body", "human", "male", "walk.png"), color.RGBA{R: 50, G: 110, B: 210, A: 255}, bodyWalkSize.X, bodyWalkSize.Y)
+	writeLayerPNGWithSize(t, filepath.Join(assets, "spritesheets", "weapon", "sword", "male", "walk.png"), color.RGBA{R: 210, G: 50, B: 90, A: 255}, weaponWalkSize.X, weaponWalkSize.Y)
+	if opts.includeBodySlash {
+		writeLayerPNG(t, filepath.Join(assets, "spritesheets", "body", "human", "male", "slash.png"), color.RGBA{R: 70, G: 130, B: 180, A: 255})
+	}
+	if opts.includeWeaponSlash {
+		writeLayerPNG(t, filepath.Join(assets, "spritesheets", "weapon", "sword", "male", "slash.png"), color.RGBA{R: 180, G: 60, B: 100, A: 255})
+	}
+
+	recipe := filepath.Join(root, "recipe.json")
+	writeFixtureFile(t, recipe, `{"body_type":"male","selections":{"body":{"id":"body_human"},"weapon":{"id":"sword_training"}}}`)
+	return assets, recipe
+}
+
 type makeReadinessFixtureOptions struct {
 	recipeBodyType        string
 	missingFallback       string
@@ -441,12 +577,17 @@ func writeFixtureFile(t *testing.T, path, data string) {
 
 func writeLayerPNG(t *testing.T, path string, fill color.RGBA) {
 	t.Helper()
+	writeLayerPNGWithSize(t, path, fill, 8, 8)
+}
+
+func writeLayerPNGWithSize(t *testing.T, path string, fill color.RGBA, width int, height int) {
+	t.Helper()
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	img := image.NewRGBA(image.Rect(0, 0, 8, 8))
-	for y := 0; y < 8; y++ {
-		for x := 0; x < 8; x++ {
+	img := image.NewRGBA(image.Rect(0, 0, width, height))
+	for y := 0; y < height; y++ {
+		for x := 0; x < width; x++ {
 			c := fill
 			c.R = uint8((int(c.R) + x + y) % 255)
 			img.SetRGBA(x, y, c)

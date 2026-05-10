@@ -25,6 +25,13 @@ type MakeService struct {
 
 var outputPNGArtifactFn = computeOutputPNGArtifact
 
+const (
+	lpcStripWidth      = 832
+	lpcFallbackHeight  = 256
+)
+
+var lpcAnimationOrder = []string{"spellcast", "thrust", "walk", "slash", "shoot", "hurt"}
+
 func NewMakeService() MakeService {
 	return MakeService{
 		validator:     NewRecipeValidator(),
@@ -73,24 +80,16 @@ func (service MakeService) Make(recipePath string, assetsPath string, outPath st
 		return appliedLayers[i].Indexed.Layer.ZPos < appliedLayers[j].Indexed.Layer.ZPos
 	})
 
-	animationIDs := make([]string, len(validation.RequiredAnimationIDs))
-	copy(animationIDs, validation.RequiredAnimationIDs)
-	if len(animationIDs) == 0 {
-		animationIDs = []string{"idle"}
+	type emittedRow struct {
+		AnimationID string
+		Image       *image.RGBA
 	}
 
-	canvasWidth := catalog.Pack.Defaults.CanvasWidth
-	if canvasWidth <= 0 {
-		canvasWidth = 64
-	}
-	frameWidth := canvasWidth
-	frameHeight := canvasWidth
-	frameCount := len(animationIDs)
-	canvasHeight := frameHeight * frameCount
-	canvas := image.NewRGBA(image.Rect(0, 0, canvasWidth, canvasHeight))
+	emittedRows := []emittedRow{}
+	for _, animationID := range lpcAnimationOrder {
+		var row *image.RGBA
+		rowHeight := 0
 
-	for frameIndex, animationID := range animationIDs {
-		frameOrigin := image.Pt(0, frameIndex*frameHeight)
 		for _, layer := range appliedLayers {
 			resolvedFramePath, found, err := service.frameResolver.ResolveFrame(assetsPath, layer.Render.ResolvedPath, animationID)
 			if err != nil {
@@ -101,32 +100,52 @@ func (service MakeService) Make(recipePath string, assetsPath string, outPath st
 				}
 			}
 			if !found {
+				continue
+			}
+
+			sourcePath := filepath.Join(assetsPath, "spritesheets", filepath.FromSlash(resolvedFramePath))
+			src, err := loadPNG(sourcePath)
+			if err != nil {
 				return models.MakeResult{}, &models.MakeProblem{
 					Code:    "RENDER_FAILED",
-					Message: fmt.Sprintf("sprite frame missing after validation: %s", path.Join("spritesheets", layer.Render.ResolvedPath, animationID+".png")),
+					Message: err.Error(),
 					Field:   "render",
 				}
 			}
 
-			sourcePath := filepath.Join(assetsPath, "spritesheets", filepath.FromSlash(resolvedFramePath))
-			file, err := os.Open(sourcePath)
-			if err != nil {
-				return models.MakeResult{}, &models.MakeProblem{
-					Code:    "RENDER_FAILED",
-					Message: err.Error(),
-					Field:   "render",
-				}
+			if row == nil {
+				rowHeight = src.Bounds().Dy()
+				row = padLayerToRow(src, rowHeight)
+				continue
 			}
-			src, err := png.Decode(file)
-			file.Close()
-			if err != nil {
-				return models.MakeResult{}, &models.MakeProblem{
-					Code:    "RENDER_FAILED",
-					Message: err.Error(),
-					Field:   "render",
-				}
-			}
-			draw.Draw(canvas, src.Bounds().Add(frameOrigin), src, src.Bounds().Min, draw.Over)
+
+			draw.Draw(row, row.Bounds(), padLayerToRow(src, rowHeight), image.Point{}, draw.Over)
+		}
+
+		if row != nil {
+			emittedRows = append(emittedRows, emittedRow{
+				AnimationID: animationID,
+				Image:       row,
+			})
+		}
+	}
+
+	canvasWidth := lpcStripWidth
+	canvasHeight := lpcFallbackHeight
+	animationIDs := []string{}
+	if len(emittedRows) > 0 {
+		canvasHeight = 0
+		for _, row := range emittedRows {
+			canvasHeight += row.Image.Bounds().Dy()
+			animationIDs = append(animationIDs, row.AnimationID)
+		}
+	}
+	canvas := image.NewRGBA(image.Rect(0, 0, canvasWidth, canvasHeight))
+	if len(emittedRows) > 0 {
+		offsetY := 0
+		for _, row := range emittedRows {
+			draw.Draw(canvas, row.Image.Bounds().Add(image.Pt(0, offsetY)), row.Image, row.Image.Bounds().Min, draw.Over)
+			offsetY += row.Image.Bounds().Dy()
 		}
 	}
 
@@ -146,7 +165,7 @@ func (service MakeService) Make(recipePath string, assetsPath string, outPath st
 		Summary: models.MakeSummary{
 			FrameCount: len(animationIDs),
 			Canvas: models.MakeCanvas{
-				Width:  frameWidth,
+				Width:  canvasWidth,
 				Height: canvasHeight,
 			},
 			AnimationCount: len(animationIDs),
@@ -190,7 +209,7 @@ func (service MakeService) Make(recipePath string, assetsPath string, outPath st
 		report.Assets.Path = assetsPath
 		report.Output.PNG.Path = outPath
 		report.Artifacts.OutputPNG = outputArtifact
-		report.Render.Canvas.Width = frameWidth
+		report.Render.Canvas.Width = canvasWidth
 		report.Render.Canvas.Height = canvasHeight
 		report.Render.FrameCount = len(animationIDs)
 		report.Render.AnimationIDs = animationIDs
@@ -238,6 +257,24 @@ func writePNGAtomically(path string, img image.Image) error {
 	}
 	removeTemp = false
 	return nil
+}
+
+func loadPNG(path string) (image.Image, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+	return png.Decode(file)
+}
+
+func padLayerToRow(src image.Image, rowHeight int) *image.RGBA {
+	if rowHeight <= 0 {
+		rowHeight = src.Bounds().Dy()
+	}
+	row := image.NewRGBA(image.Rect(0, 0, lpcStripWidth, rowHeight))
+	draw.Draw(row, src.Bounds(), src, src.Bounds().Min, draw.Src)
+	return row
 }
 
 func writeJSONFile(path string, value interface{}) error {

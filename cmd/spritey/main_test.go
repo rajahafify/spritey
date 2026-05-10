@@ -843,8 +843,11 @@ func TestMakeJSONReportProvenanceAndEnvelopeUnchanged(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected summary.canvas object, got %+v", summary["canvas"])
 	}
-	if int(canvas["height"].(float64)) != 16 {
-		t.Fatalf("expected summary canvas height 16 for two-frame strip, got %+v", canvas)
+	if int(canvas["width"].(float64)) != 832 || int(canvas["height"].(float64)) != 8 {
+		t.Fatalf("expected LPC summary canvas 832x8, got %+v", canvas)
+	}
+	if int(summary["frame_count"].(float64)) != 1 || int(summary["animation_count"].(float64)) != 1 {
+		t.Fatalf("expected emitted-row summary counts, got %+v", summary)
 	}
 
 	reportData, err := os.ReadFile(report)
@@ -920,7 +923,7 @@ func TestMakeReportAnimationOrderMatchesStripRowOrder(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected render.animation_ids array, got %+v", render["animation_ids"])
 	}
-	if len(animationIDs) != 2 || animationIDs[0] != "idle" || animationIDs[1] != "walk" {
+	if len(animationIDs) != 1 || animationIDs[0] != "walk" {
 		t.Fatalf("unexpected animation id order in report: %+v", animationIDs)
 	}
 
@@ -935,12 +938,8 @@ func TestMakeReportAnimationOrderMatchesStripRowOrder(t *testing.T) {
 	}
 
 	top := color.RGBAModel.Convert(img.At(2, 2)).(color.RGBA)
-	next := color.RGBAModel.Convert(img.At(2, 10)).(color.RGBA)
-	if top != (color.RGBA{R: 204, G: 40, B: 80, A: 255}) {
-		t.Fatalf("expected top strip row to match idle frame, got %+v", top)
-	}
-	if next != (color.RGBA{R: 214, G: 50, B: 90, A: 255}) {
-		t.Fatalf("expected second strip row to match walk frame, got %+v", next)
+	if top != (color.RGBA{R: 214, G: 50, B: 90, A: 255}) {
+		t.Fatalf("expected only emitted row to match walk frame, got %+v", top)
 	}
 }
 
@@ -977,7 +976,7 @@ func TestMakeTextSuccessWithReport(t *testing.T) {
 	}
 
 	want := fmt.Sprintf(
-		"ok: make\npng: %s\nreport: %s\nframe_count: 2\ncanvas: 8x16\nanimation_count: 2\n",
+		"ok: make\npng: %s\nreport: %s\nframe_count: 1\ncanvas: 832x8\nanimation_count: 1\n",
 		out,
 		report,
 	)
@@ -1000,7 +999,7 @@ func TestMakeTextSuccessWithoutReport(t *testing.T) {
 	}
 
 	want := fmt.Sprintf(
-		"ok: make\npng: %s\nframe_count: 2\ncanvas: 8x16\nanimation_count: 2\n",
+		"ok: make\npng: %s\nframe_count: 1\ncanvas: 832x8\nanimation_count: 1\n",
 		out,
 	)
 	if stdout.String() != want {
