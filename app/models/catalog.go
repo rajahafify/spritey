@@ -44,14 +44,15 @@ type Category struct {
 }
 
 type Layer struct {
-	ID              string   `json:"id"`
-	Name            string   `json:"name"`
-	ZPos            int      `json:"z_pos"`
-	BodyTypes       []string `json:"body_types"`
-	Animations      []string `json:"animations"`
-	RecolorMaterial string   `json:"recolor_material,omitempty"`
-	PathPrefix      string   `json:"path_prefix,omitempty"`
-	Credits         []Credit `json:"credits"`
+	ID              string            `json:"id"`
+	Name            string            `json:"name"`
+	ZPos            int               `json:"z_pos"`
+	BodyTypes       []string          `json:"body_types"`
+	BodyTypePaths   map[string]string `json:"-"`
+	Animations      []string          `json:"animations"`
+	RecolorMaterial string            `json:"recolor_material,omitempty"`
+	PathPrefix      string            `json:"path_prefix,omitempty"`
+	Credits         []Credit          `json:"credits"`
 }
 
 type InspectLayerResult struct {

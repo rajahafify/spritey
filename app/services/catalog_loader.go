@@ -157,7 +157,7 @@ func loadLayerDefinition(sheetRoot string, path string) (models.Layer, string, *
 		name = id
 	}
 
-	bodyTypes, pathPrefix := layerBodyTypes(definition.Layer1)
+	bodyTypes, bodyTypePaths, pathPrefix := layerBodyTypes(definition.Layer1)
 	credits := definition.Credits
 	if credits == nil {
 		credits = []models.Credit{}
@@ -172,6 +172,7 @@ func loadLayerDefinition(sheetRoot string, path string) (models.Layer, string, *
 		Name:            name,
 		ZPos:            layerZPos(definition.Layer1),
 		BodyTypes:       bodyTypes,
+		BodyTypePaths:   bodyTypePaths,
 		Animations:      animations,
 		RecolorMaterial: definition.Recolors.Material,
 		PathPrefix:      pathPrefix,
@@ -195,9 +196,9 @@ func layerZPos(layer map[string]interface{}) int {
 	}
 }
 
-func layerBodyTypes(layer map[string]interface{}) ([]string, string) {
+func layerBodyTypes(layer map[string]interface{}) ([]string, map[string]string, string) {
 	if layer == nil {
-		return []string{}, ""
+		return []string{}, map[string]string{}, ""
 	}
 
 	bodyTypes := make([]string, 0, len(layer))
@@ -215,9 +216,9 @@ func layerBodyTypes(layer map[string]interface{}) ([]string, string) {
 	}
 	sort.Strings(bodyTypes)
 	if len(bodyTypes) == 0 {
-		return bodyTypes, ""
+		return bodyTypes, pathsByBodyType, ""
 	}
-	return bodyTypes, pathsByBodyType[bodyTypes[0]]
+	return bodyTypes, pathsByBodyType, pathsByBodyType[bodyTypes[0]]
 }
 
 func isLayerMetadataKey(key string) bool {

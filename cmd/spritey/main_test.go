@@ -2,7 +2,12 @@ package main
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/json"
+	"fmt"
+	"image"
+	"image/color"
+	"image/png"
 	"os"
 	"path/filepath"
 	"testing"
@@ -98,6 +103,27 @@ type assetsValidationTestResponse struct {
 		Code    string `json:"code"`
 		Message string `json:"message"`
 		Field   string `json:"field,omitempty"`
+	} `json:"errors"`
+}
+
+type makeTestResponse struct {
+	OK      bool   `json:"ok"`
+	Command string `json:"command"`
+	Outputs struct {
+		PNG *struct {
+			Path string `json:"path"`
+		} `json:"png"`
+		Report *struct {
+			Path string `json:"path"`
+		} `json:"report,omitempty"`
+	} `json:"outputs"`
+	Summary  map[string]interface{} `json:"summary"`
+	Warnings []string               `json:"warnings"`
+	Errors   []struct {
+		Code    string                 `json:"code"`
+		Message string                 `json:"message"`
+		Field   string                 `json:"field,omitempty"`
+		Details map[string]interface{} `json:"details,omitempty"`
 	} `json:"errors"`
 }
 
@@ -669,6 +695,158 @@ func TestAssetsValidateJSONMissingPaletteDefinitions(t *testing.T) {
 	}
 }
 
+func TestMakeJSONSuccessWithReport(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	assets, recipe := writeDeterministicMakeFixture(t)
+	out := filepath.Join(t.TempDir(), "sprite.png")
+	report := filepath.Join(t.TempDir(), "sprite.report.json")
+
+	code := run([]string{"make", recipe, "--assets", assets, "--out", out, "--report", report, "--json"}, &stdout, &stderr)
+	if code != 0 {
+		t.Fatalf("expected exit code 0, got %d stderr=%q stdout=%q", code, stderr.String(), stdout.String())
+	}
+	got := decodeMakeResponse(t, stdout.Bytes())
+	if !got.OK || got.Command != "make" {
+		t.Fatalf("unexpected response: %+v", got)
+	}
+	if got.Outputs.PNG == nil || got.Outputs.PNG.Path != out {
+		t.Fatalf("unexpected png output: %+v", got.Outputs)
+	}
+	if got.Outputs.Report == nil || got.Outputs.Report.Path != report {
+		t.Fatalf("unexpected report output: %+v", got.Outputs)
+	}
+	if _, err := os.Stat(out); err != nil {
+		t.Fatalf("expected png output to exist: %v", err)
+	}
+	if _, err := os.Stat(report); err != nil {
+		t.Fatalf("expected report output to exist: %v", err)
+	}
+}
+
+func TestMakeJSONSuccessWithoutReport(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	assets, recipe := writeDeterministicMakeFixture(t)
+	out := filepath.Join(t.TempDir(), "sprite.png")
+
+	code := run([]string{"make", recipe, "--assets", assets, "--out", out, "--json"}, &stdout, &stderr)
+	if code != 0 {
+		t.Fatalf("expected exit code 0, got %d stderr=%q stdout=%q", code, stderr.String(), stdout.String())
+	}
+	got := decodeMakeResponse(t, stdout.Bytes())
+	if !got.OK {
+		t.Fatalf("unexpected response: %+v", got)
+	}
+	if got.Outputs.Report != nil {
+		t.Fatalf("expected report output to be omitted, got %+v", got.Outputs.Report)
+	}
+}
+
+func TestMakeMissingRecipe(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	code := run([]string{"make", "--assets", "x", "--out", "y", "--json"}, &stdout, &stderr)
+	if code != 2 {
+		t.Fatalf("expected exit code 2, got %d", code)
+	}
+	got := decodeMakeResponse(t, stdout.Bytes())
+	if got.OK || got.Errors[0].Code != "MISSING_RECIPE" {
+		t.Fatalf("unexpected response: %+v", got)
+	}
+}
+
+func TestMakeMissingAssets(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	code := run([]string{"make", "recipe.json", "--out", "y", "--json"}, &stdout, &stderr)
+	if code != 2 {
+		t.Fatalf("expected exit code 2, got %d", code)
+	}
+	got := decodeMakeResponse(t, stdout.Bytes())
+	if got.OK || got.Errors[0].Code != "MISSING_ASSETS" {
+		t.Fatalf("unexpected response: %+v", got)
+	}
+}
+
+func TestMakeMissingOut(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	code := run([]string{"make", "recipe.json", "--assets", "x", "--json"}, &stdout, &stderr)
+	if code != 2 {
+		t.Fatalf("expected exit code 2, got %d", code)
+	}
+	got := decodeMakeResponse(t, stdout.Bytes())
+	if got.OK || got.Errors[0].Code != "MISSING_OUT" {
+		t.Fatalf("unexpected response: %+v", got)
+	}
+}
+
+func TestMakeNonexistentRecipeAndAssets(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	out := filepath.Join(t.TempDir(), "sprite.png")
+	code := run([]string{"make", filepath.Join(t.TempDir(), "missing.json"), "--assets", filepath.Join(t.TempDir(), "missing-assets"), "--out", out, "--json"}, &stdout, &stderr)
+	if code != 3 {
+		t.Fatalf("expected exit code 3, got %d", code)
+	}
+	got := decodeMakeResponse(t, stdout.Bytes())
+	if got.OK || got.Errors[0].Code != "ASSETS_DIRECTORY_NOT_FOUND" {
+		t.Fatalf("unexpected response: %+v", got)
+	}
+}
+
+func TestMakeJSONEnvelopeStability(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	assets, recipe := writeDeterministicMakeFixture(t)
+	out := filepath.Join(t.TempDir(), "sprite.png")
+	code := run([]string{"make", recipe, "--assets", assets, "--out", out, "--json"}, &stdout, &stderr)
+	if code != 0 {
+		t.Fatalf("expected exit code 0, got %d", code)
+	}
+
+	var parsed map[string]interface{}
+	if err := json.Unmarshal(stdout.Bytes(), &parsed); err != nil {
+		t.Fatal(err)
+	}
+	assertHasKeys(t, parsed, "ok", "command", "outputs", "summary", "warnings", "errors")
+}
+
+func TestMakeJSONErrorEnvelopeStability(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	code := run([]string{"make", "--json"}, &stdout, &stderr)
+	if code != 2 {
+		t.Fatalf("expected exit code 2, got %d", code)
+	}
+
+	var parsed map[string]interface{}
+	if err := json.Unmarshal(stdout.Bytes(), &parsed); err != nil {
+		t.Fatal(err)
+	}
+	assertHasKeys(t, parsed, "ok", "command", "outputs", "summary", "warnings", "errors")
+	errorsField, ok := parsed["errors"].([]interface{})
+	if !ok || len(errorsField) == 0 {
+		t.Fatalf("expected non-empty errors: %+v", parsed)
+	}
+	errObj, ok := errorsField[0].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected error object: %+v", errorsField[0])
+	}
+	assertHasKeys(t, errObj, "code", "message")
+}
+
+func TestMakeRenderFailureIsExit6(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	assets, recipe := writeDeterministicMakeFixture(t)
+	outDir := filepath.Join(t.TempDir(), "out-dir")
+	if err := os.MkdirAll(outDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	code := run([]string{"make", recipe, "--assets", assets, "--out", outDir, "--json"}, &stdout, &stderr)
+	if code != 6 {
+		t.Fatalf("expected exit code 6, got %d", code)
+	}
+	got := decodeMakeResponse(t, stdout.Bytes())
+	if got.OK || got.Errors[0].Code != "RENDER_FAILED" {
+		t.Fatalf("unexpected response: %+v", got)
+	}
+}
+
 func decodeCatalogResponse(t *testing.T, data []byte) catalogTestResponse {
 	t.Helper()
 
@@ -744,4 +922,76 @@ func writeMinimalAssetsPack(t *testing.T, assets string) {
 	writeTestFile(t, filepath.Join(assets, "sheet_definitions", "body", "body_human.json"), `{"name":"Human Body","type_name":"body","layer_1":{"zPos":10,"male":"body/human/male/"},"animations":["walk"]}`)
 	writeTestFile(t, filepath.Join(assets, "spritesheets", ".gitkeep"), "")
 	writeTestFile(t, filepath.Join(assets, "palette_definitions", ".gitkeep"), "")
+}
+
+func decodeMakeResponse(t *testing.T, data []byte) makeTestResponse {
+	t.Helper()
+	var got makeTestResponse
+	if err := json.Unmarshal(data, &got); err != nil {
+		t.Fatalf("failed to decode JSON %q: %v", string(data), err)
+	}
+	return got
+}
+
+func assertHasKeys(t *testing.T, got map[string]interface{}, keys ...string) {
+	t.Helper()
+	for _, key := range keys {
+		if _, ok := got[key]; !ok {
+			t.Fatalf("missing key %q in %+v", key, got)
+		}
+	}
+}
+
+func writeDeterministicMakeFixture(t *testing.T) (string, string) {
+	t.Helper()
+
+	root := t.TempDir()
+	assets := filepath.Join(root, "assets")
+	writeTestFile(t, filepath.Join(assets, "pack.json"), `{"schema_version":"1","id":"make-assets","name":"Make Assets","defaults":{"body_type":"male","animations":["idle","walk"],"canvas_width":8}}`)
+	writeTestFile(t, filepath.Join(assets, "sheet_definitions", "body", "body_human.json"), `{"name":"Human Body","type_name":"body","layer_1":{"zPos":10,"male":"body/human/male/"},"animations":["walk","idle"]}`)
+	writeTestFile(t, filepath.Join(assets, "sheet_definitions", "weapon", "sword_training.json"), `{"name":"Training Sword","type_name":"weapon","layer_1":{"zPos":30,"male":"weapon/sword/male/"},"animations":["walk","idle"]}`)
+	writeTestFile(t, filepath.Join(assets, "palette_definitions", ".gitkeep"), "")
+	writeTestFile(t, filepath.Join(assets, "spritesheets", ".gitkeep"), "")
+
+	makeDeterministicLayerPNG(t, filepath.Join(assets, "spritesheets", "body", "human", "male", "idle.png"), color.RGBA{R: 40, G: 100, B: 200, A: 255})
+	makeDeterministicLayerPNG(t, filepath.Join(assets, "spritesheets", "body", "human", "male", "walk.png"), color.RGBA{R: 50, G: 110, B: 210, A: 255})
+	makeDeterministicLayerPNG(t, filepath.Join(assets, "spritesheets", "weapon", "sword", "male", "idle.png"), color.RGBA{R: 200, G: 40, B: 80, A: 255})
+	makeDeterministicLayerPNG(t, filepath.Join(assets, "spritesheets", "weapon", "sword", "male", "walk.png"), color.RGBA{R: 210, G: 50, B: 90, A: 255})
+
+	recipe := filepath.Join(root, "recipe.json")
+	writeTestFile(t, recipe, `{"body_type":"male","selections":{"body":{"id":"body_human"},"weapon":{"id":"sword_training"}}}`)
+	return assets, recipe
+}
+
+func makeDeterministicLayerPNG(t *testing.T, path string, fill color.RGBA) {
+	t.Helper()
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	img := image.NewRGBA(image.Rect(0, 0, 8, 8))
+	for y := 0; y < 8; y++ {
+		for x := 0; x < 8; x++ {
+			c := fill
+			c.R = uint8((int(c.R) + x + y) % 255)
+			img.SetRGBA(x, y, c)
+		}
+	}
+	file, err := os.Create(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer file.Close()
+	if err := png.Encode(file, img); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func pngSHA256(t *testing.T, path string) string {
+	t.Helper()
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sum := sha256.Sum256(data)
+	return fmt.Sprintf("%x", sum[:])
 }

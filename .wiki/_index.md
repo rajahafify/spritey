@@ -32,6 +32,7 @@ Last updated: 2026-05-10
 
 ## Recent Changes
 
+- 2026-05-10: Implemented make command (spec 005) with minimal render pipeline, report v1, and deterministic tests.
 - 2026-05-10: Implemented assets validation and documented the fourth CLI slice.
 - 2026-05-10: Implemented recipe validation and documented the third CLI slice.
 - 2026-05-10: Implemented inspect layer and documented the second CLI slice.

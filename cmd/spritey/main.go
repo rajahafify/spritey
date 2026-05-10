@@ -53,6 +53,16 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 			return controllers.WriteValidateProblem(*problem, controllers.ExitInvalidCLIUsage, options.JSON, stdout, stderr)
 		}
 		return controllers.NewValidateController().Validate(options, stdout, stderr)
+	case "make":
+		options, problem := parseMakeOptions(args[1:])
+		if problem != nil {
+			return controllers.WriteMakeProblem(models.MakeOutputs{}, models.MakeProblem{
+				Code:    problem.Code,
+				Message: problem.Message,
+				Field:   problem.Field,
+			}, controllers.ExitInvalidCLIUsage, options.JSON, stdout, stderr)
+		}
+		return controllers.NewMakeController().Make(options, stdout, stderr)
 	default:
 		return controllers.WriteProblem(
 			models.Problem{
@@ -66,6 +76,48 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 			stderr,
 		)
 	}
+}
+
+func parseMakeOptions(args []string) (controllers.MakeOptions, *models.Problem) {
+	options := controllers.MakeOptions{}
+	if len(args) == 0 {
+		return options, nil
+	}
+	if !isFlag(args[0]) {
+		options.RecipePath = args[0]
+		args = args[1:]
+	}
+	for i := 0; i < len(args); i++ {
+		switch args[i] {
+		case "--json":
+			options.JSON = true
+		case "--assets":
+			if i+1 >= len(args) {
+				return options, &models.Problem{Code: "MISSING_ASSETS_VALUE", Message: "--assets requires a value", Field: "assets"}
+			}
+			options.AssetsPath = args[i+1]
+			i++
+		case "--out":
+			if i+1 >= len(args) {
+				return options, &models.Problem{Code: "MISSING_OUT_VALUE", Message: "--out requires a value", Field: "out"}
+			}
+			options.OutPath = args[i+1]
+			i++
+		case "--report":
+			if i+1 >= len(args) {
+				return options, &models.Problem{Code: "MISSING_REPORT_VALUE", Message: "--report requires a value", Field: "report"}
+			}
+			options.ReportPath = args[i+1]
+			i++
+		default:
+			return options, &models.Problem{
+				Code:    "UNKNOWN_ARGUMENT",
+				Message: fmt.Sprintf("unknown argument: %s", args[i]),
+				Field:   "argument",
+			}
+		}
+	}
+	return options, nil
 }
 
 func parseAssetsValidateOptions(args []string) (controllers.AssetsValidateOptions, *models.Problem) {
