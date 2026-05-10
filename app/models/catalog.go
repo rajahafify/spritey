@@ -78,15 +78,25 @@ type RecipeSelection struct {
 }
 
 type RecipeValidationResult struct {
-	Path       string                      `json:"path"`
-	BodyType   string                      `json:"body_type"`
-	Selections []RecipeValidationSelection `json:"selections"`
+	Path                 string                      `json:"path"`
+	BodyType             string                      `json:"body_type"`
+	Selections           []RecipeValidationSelection `json:"selections"`
+	Warnings             []string                    `json:"-"`
+	RequiredAnimationIDs []string                    `json:"-"`
+	RenderInputs         []RecipeRenderInput         `json:"-"`
 }
 
 type RecipeValidationSelection struct {
 	Category       string `json:"category"`
 	ID             string `json:"id"`
 	PaletteVariant string `json:"palette_variant,omitempty"`
+}
+
+type RecipeRenderInput struct {
+	Category         string `json:"-"`
+	LayerID          string `json:"-"`
+	ResolvedPath     string `json:"-"`
+	ResolvedBodyType string `json:"-"`
 }
 
 type Credit struct {

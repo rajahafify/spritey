@@ -36,23 +36,34 @@ func (service MakeService) Make(recipePath string, assetsPath string, outPath st
 	}
 
 	layerByID := indexLayers(catalog)
-	appliedLayers := make([]indexedLayer, 0, len(validation.Selections))
+	renderInputByLayerID := map[string]models.RecipeRenderInput{}
+	for _, input := range validation.RenderInputs {
+		renderInputByLayerID[input.LayerID] = input
+	}
+
+	type appliedLayer struct {
+		Indexed indexedLayer
+		Render  models.RecipeRenderInput
+	}
+	appliedLayers := make([]appliedLayer, 0, len(validation.Selections))
 	appliedIDs := make([]string, 0, len(validation.Selections))
 	for _, selection := range validation.Selections {
 		layer := layerByID[selection.ID]
-		appliedLayers = append(appliedLayers, layer)
+		appliedLayers = append(appliedLayers, appliedLayer{
+			Indexed: layer,
+			Render:  renderInputByLayerID[selection.ID],
+		})
 		appliedIDs = append(appliedIDs, selection.ID)
 	}
 	sort.Slice(appliedLayers, func(i, j int) bool {
-		if appliedLayers[i].Layer.ZPos == appliedLayers[j].Layer.ZPos {
-			return appliedLayers[i].Layer.ID < appliedLayers[j].Layer.ID
+		if appliedLayers[i].Indexed.Layer.ZPos == appliedLayers[j].Indexed.Layer.ZPos {
+			return appliedLayers[i].Indexed.Layer.ID < appliedLayers[j].Indexed.Layer.ID
 		}
-		return appliedLayers[i].Layer.ZPos < appliedLayers[j].Layer.ZPos
+		return appliedLayers[i].Indexed.Layer.ZPos < appliedLayers[j].Indexed.Layer.ZPos
 	})
 
-	animationIDs := make([]string, len(catalog.Pack.Defaults.Animations))
-	copy(animationIDs, catalog.Pack.Defaults.Animations)
-	sort.Strings(animationIDs)
+	animationIDs := make([]string, len(validation.RequiredAnimationIDs))
+	copy(animationIDs, validation.RequiredAnimationIDs)
 	if len(animationIDs) == 0 {
 		animationIDs = []string{"idle"}
 	}
@@ -65,13 +76,7 @@ func (service MakeService) Make(recipePath string, assetsPath string, outPath st
 	canvas := image.NewRGBA(image.Rect(0, 0, canvasWidth, canvasHeight))
 
 	for _, layer := range appliedLayers {
-		layerPathPrefix := layer.Layer.PathPrefix
-		if layer.Layer.BodyTypePaths != nil {
-			if matchedPath, ok := layer.Layer.BodyTypePaths[validation.BodyType]; ok && matchedPath != "" {
-				layerPathPrefix = matchedPath
-			}
-		}
-		sourcePath := filepath.Join(assetsPath, "spritesheets", filepath.FromSlash(layerPathPrefix), animationIDs[0]+".png")
+		sourcePath := filepath.Join(assetsPath, "spritesheets", filepath.FromSlash(layer.Render.ResolvedPath), animationIDs[0]+".png")
 		file, err := os.Open(sourcePath)
 		if err != nil {
 			return models.MakeResult{}, &models.MakeProblem{
@@ -113,14 +118,14 @@ func (service MakeService) Make(recipePath string, assetsPath string, outPath st
 			},
 			AnimationCount: len(animationIDs),
 		},
-		Warnings: []string{},
+		Warnings: append([]string{}, validation.Warnings...),
 	}
 
 	if reportPath != "" {
 		report := models.MakeReportV1{
 			SchemaVersion: "1",
 			Command:       "make",
-			Warnings:      []string{},
+			Warnings:      append([]string{}, validation.Warnings...),
 		}
 		report.Recipe.Path = recipePath
 		report.Assets.Path = assetsPath

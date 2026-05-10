@@ -4,7 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path"
+	"path/filepath"
 	"sort"
+	"strings"
 
 	"github.com/rajahafify/spritey/app/models"
 )
@@ -32,6 +35,7 @@ func (validator RecipeValidator) Validate(recipePath string, assetsPath string) 
 	if bodyType == "" {
 		bodyType = catalog.Pack.Defaults.BodyType
 	}
+	requiredAnimations := requiredAnimationIDs(catalog.Pack.Defaults.Animations)
 
 	if len(recipe.Selections) == 0 {
 		return models.RecipeValidationResult{}, &models.Problem{
@@ -44,6 +48,8 @@ func (validator RecipeValidator) Validate(recipePath string, assetsPath string) 
 	layerIndex := indexLayers(catalog)
 	selectionKeys := sortedSelectionKeys(recipe.Selections)
 	validated := make([]models.RecipeValidationSelection, 0, len(selectionKeys))
+	renderInputs := make([]models.RecipeRenderInput, 0, len(selectionKeys))
+	warnings := []string{}
 	for _, category := range selectionKeys {
 		selection := recipe.Selections[category]
 		if selection.ID == "" {
@@ -62,11 +68,34 @@ func (validator RecipeValidator) Validate(recipePath string, assetsPath string) 
 				Field:   fmt.Sprintf("selections.%s.id", category),
 			}
 		}
-		if !supportsBodyType(layer.Layer.BodyTypes, bodyType) {
+
+		resolvedPath, resolvedBodyType, usedFallback, ok := resolveLayerRenderPath(layer.Layer, bodyType, catalog.Pack.Defaults.MissingBodyTypeFallback)
+		if !ok {
 			return models.RecipeValidationResult{}, &models.Problem{
 				Code:    "UNSUPPORTED_BODY_TYPE",
 				Message: fmt.Sprintf("layer %s does not support body type %s", selection.ID, bodyType),
 				Field:   "body_type",
+			}
+		}
+		if usedFallback {
+			warnings = append(warnings, fallbackBodyTypeWarning(selection.ID, bodyType, resolvedBodyType, resolvedPath))
+		}
+		for _, animationID := range requiredAnimations {
+			framePath := filepath.Join(assetsPath, "spritesheets", filepath.FromSlash(resolvedPath), animationID+".png")
+			if _, err := os.Stat(framePath); err != nil {
+				if os.IsNotExist(err) {
+					relativeFrame := path.Join("spritesheets", path.Clean(path.Join(resolvedPath, animationID+".png")))
+					return models.RecipeValidationResult{}, &models.Problem{
+						Code:    "MISSING_SPRITE_FRAME",
+						Message: fmt.Sprintf("missing required sprite frame: %s", relativeFrame),
+						Field:   relativeFrame,
+					}
+				}
+				return models.RecipeValidationResult{}, &models.Problem{
+					Code:    "READ_SPRITE_FRAME_FAILED",
+					Message: err.Error(),
+					Field:   path.Join("spritesheets", path.Clean(path.Join(resolvedPath, animationID+".png"))),
+				}
 			}
 		}
 
@@ -75,12 +104,21 @@ func (validator RecipeValidator) Validate(recipePath string, assetsPath string) 
 			ID:             selection.ID,
 			PaletteVariant: selection.PaletteVariant,
 		})
+		renderInputs = append(renderInputs, models.RecipeRenderInput{
+			Category:         category,
+			LayerID:          selection.ID,
+			ResolvedPath:     resolvedPath,
+			ResolvedBodyType: resolvedBodyType,
+		})
 	}
 
 	return models.RecipeValidationResult{
-		Path:       recipePath,
-		BodyType:   bodyType,
-		Selections: validated,
+		Path:                 recipePath,
+		BodyType:             bodyType,
+		Selections:           validated,
+		Warnings:             warnings,
+		RequiredAnimationIDs: requiredAnimations,
+		RenderInputs:         renderInputs,
 	}, nil
 }
 
@@ -146,4 +184,57 @@ func supportsBodyType(bodyTypes []string, bodyType string) bool {
 		}
 	}
 	return false
+}
+
+func requiredAnimationIDs(animations []string) []string {
+	if len(animations) == 0 {
+		return []string{"idle"}
+	}
+
+	cleaned := make([]string, 0, len(animations))
+	for _, animation := range animations {
+		trimmed := strings.TrimSpace(animation)
+		if trimmed == "" {
+			continue
+		}
+		cleaned = append(cleaned, trimmed)
+	}
+	if len(cleaned) == 0 {
+		return []string{"idle"}
+	}
+	sort.Strings(cleaned)
+	unique := cleaned[:1]
+	for i := 1; i < len(cleaned); i++ {
+		if cleaned[i] != cleaned[i-1] {
+			unique = append(unique, cleaned[i])
+		}
+	}
+	return unique
+}
+
+func resolveLayerRenderPath(layer models.Layer, requestedBodyType string, fallbackBodyType string) (string, string, bool, bool) {
+	if layer.BodyTypePaths != nil {
+		if pathPrefix := strings.TrimSpace(layer.BodyTypePaths[requestedBodyType]); pathPrefix != "" {
+			return pathPrefix, requestedBodyType, false, true
+		}
+	}
+
+	effectiveFallback := strings.TrimSpace(fallbackBodyType)
+	if effectiveFallback != "" && effectiveFallback != requestedBodyType && layer.BodyTypePaths != nil {
+		if pathPrefix := strings.TrimSpace(layer.BodyTypePaths[effectiveFallback]); pathPrefix != "" {
+			return pathPrefix, effectiveFallback, true, true
+		}
+	}
+
+	return "", "", false, false
+}
+
+func fallbackBodyTypeWarning(layerID string, requestedBodyType string, fallbackBodyType string, resolvedPath string) string {
+	return fmt.Sprintf(
+		"layer %s missing body type %s; using fallback %s path %s",
+		layerID,
+		requestedBodyType,
+		fallbackBodyType,
+		resolvedPath,
+	)
 }

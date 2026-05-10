@@ -17,7 +17,7 @@ func WriteValidateRecipeJSON(writer io.Writer, result models.RecipeValidationRes
 	return writeJSON(writer, ValidateRecipeResponse{
 		OK:       true,
 		Recipe:   &result,
-		Warnings: []string{},
+		Warnings: result.Warnings,
 		Errors:   []models.Problem{},
 	})
 }

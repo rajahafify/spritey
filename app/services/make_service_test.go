@@ -83,6 +83,66 @@ func TestMakeServiceDeterministicPNGHashAndDimensions(t *testing.T) {
 	}
 }
 
+func TestMakeServiceMissingRequiredFrameReturnsInputValidationAndNoOutput(t *testing.T) {
+	assets, recipe := writeMakeReadinessFixture(t, makeReadinessFixtureOptions{
+		recipeBodyType:      "male",
+		missingFallback:     "male",
+		requiredAnimations:  []string{"idle", "walk"},
+		includeBodyIdle:     true,
+		includeBodyWalk:     true,
+		includeWeaponIdle:   true,
+		includeWeaponWalk:   false,
+		weaponHasFemalePath: true,
+	})
+	out := filepath.Join(t.TempDir(), "sprite.png")
+
+	_, problem := NewMakeService().Make(recipe, assets, out, "")
+	if problem == nil {
+		t.Fatal("expected make problem")
+	}
+	if problem.Code != "MISSING_SPRITE_FRAME" {
+		t.Fatalf("unexpected make code: %+v", problem)
+	}
+	if _, err := os.Stat(out); !os.IsNotExist(err) {
+		t.Fatalf("expected no output file, stat err=%v", err)
+	}
+}
+
+func TestMakeServiceFallbackPathWarningsInResultAndReport(t *testing.T) {
+	assets, recipe := writeMakeReadinessFixture(t, makeReadinessFixtureOptions{
+		recipeBodyType:        "female",
+		missingFallback:       "male",
+		requiredAnimations:    []string{"idle"},
+		includeBodyIdle:       true,
+		includeBodyFemaleIdle: true,
+		includeWeaponIdle:     true,
+		weaponHasFemalePath:   false,
+	})
+	out := filepath.Join(t.TempDir(), "sprite.png")
+	report := filepath.Join(t.TempDir(), "sprite.report.json")
+
+	result, problem := NewMakeService().Make(recipe, assets, out, report)
+	if problem != nil {
+		t.Fatalf("expected make success, got %+v", problem)
+	}
+	if len(result.Warnings) != 1 {
+		t.Fatalf("expected one warning in result, got %+v", result.Warnings)
+	}
+
+	reportData, err := os.ReadFile(report)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got map[string]interface{}
+	if err := json.Unmarshal(reportData, &got); err != nil {
+		t.Fatal(err)
+	}
+	warnings, ok := got["warnings"].([]interface{})
+	if !ok || len(warnings) != 1 {
+		t.Fatalf("expected one warning in report, got %+v", got["warnings"])
+	}
+}
+
 func writeMakeFixture(t *testing.T) (string, string) {
 	t.Helper()
 
@@ -102,6 +162,80 @@ func writeMakeFixture(t *testing.T) (string, string) {
 	recipe := filepath.Join(root, "recipe.json")
 	writeFixtureFile(t, recipe, `{"body_type":"male","selections":{"body":{"id":"body_human"},"weapon":{"id":"sword_training"}}}`)
 	return assets, recipe
+}
+
+type makeReadinessFixtureOptions struct {
+	recipeBodyType        string
+	missingFallback       string
+	requiredAnimations    []string
+	includeBodyIdle       bool
+	includeBodyFemaleIdle bool
+	includeBodyWalk       bool
+	includeWeaponIdle     bool
+	includeWeaponWalk     bool
+	weaponHasFemalePath   bool
+}
+
+func writeMakeReadinessFixture(t *testing.T, opts makeReadinessFixtureOptions) (string, string) {
+	t.Helper()
+	root := t.TempDir()
+	assets := filepath.Join(root, "assets")
+
+	recipeBodyType := opts.recipeBodyType
+	if recipeBodyType == "" {
+		recipeBodyType = "male"
+	}
+	missingFallback := opts.missingFallback
+	if missingFallback == "" {
+		missingFallback = "male"
+	}
+	requiredAnimations := opts.requiredAnimations
+	if len(requiredAnimations) == 0 {
+		requiredAnimations = []string{"idle"}
+	}
+	animationsJSON := `["` + requiredAnimations[0] + `"`
+	for i := 1; i < len(requiredAnimations); i++ {
+		animationsJSON += `,"` + requiredAnimations[i] + `"`
+	}
+	animationsJSON += `]`
+
+	weaponFemale := `"female":"weapon/sword/female/"`
+	if !opts.weaponHasFemalePath {
+		weaponFemale = ""
+	}
+
+	writeFixtureFile(t, filepath.Join(assets, "pack.json"), `{"schema_version":"1","id":"make-readiness","name":"Make Readiness","defaults":{"body_type":"male","animations":`+animationsJSON+`,"canvas_width":8,"missing_body_type_fallback":"`+missingFallback+`"}}`)
+	writeFixtureFile(t, filepath.Join(assets, "sheet_definitions", "body", "body_human.json"), `{"name":"Human Body","type_name":"body","layer_1":{"zPos":10,"male":"body/human/male/","female":"body/human/female/"},"animations":["idle","walk"]}`)
+	writeFixtureFile(t, filepath.Join(assets, "sheet_definitions", "weapon", "sword_training.json"), `{"name":"Training Sword","type_name":"weapon","layer_1":{"zPos":30,"male":"weapon/sword/male/"`+withOptionalLeadingComma(weaponFemale)+`},"animations":["idle","walk"]}`)
+	writeFixtureFile(t, filepath.Join(assets, "palette_definitions", ".gitkeep"), "")
+	writeFixtureFile(t, filepath.Join(assets, "spritesheets", ".gitkeep"), "")
+
+	if opts.includeBodyIdle {
+		writeLayerPNG(t, filepath.Join(assets, "spritesheets", "body", "human", "male", "idle.png"), color.RGBA{R: 40, G: 100, B: 200, A: 255})
+	}
+	if opts.includeBodyWalk {
+		writeLayerPNG(t, filepath.Join(assets, "spritesheets", "body", "human", "male", "walk.png"), color.RGBA{R: 50, G: 110, B: 210, A: 255})
+	}
+	if opts.includeBodyFemaleIdle {
+		writeLayerPNG(t, filepath.Join(assets, "spritesheets", "body", "human", "female", "idle.png"), color.RGBA{R: 45, G: 105, B: 205, A: 255})
+	}
+	if opts.includeWeaponIdle {
+		writeLayerPNG(t, filepath.Join(assets, "spritesheets", "weapon", "sword", "male", "idle.png"), color.RGBA{R: 200, G: 40, B: 80, A: 255})
+	}
+	if opts.includeWeaponWalk {
+		writeLayerPNG(t, filepath.Join(assets, "spritesheets", "weapon", "sword", "male", "walk.png"), color.RGBA{R: 210, G: 50, B: 90, A: 255})
+	}
+
+	recipe := filepath.Join(root, "recipe.json")
+	writeFixtureFile(t, recipe, `{"body_type":"`+recipeBodyType+`","selections":{"body":{"id":"body_human"},"weapon":{"id":"sword_training"}}}`)
+	return assets, recipe
+}
+
+func withOptionalLeadingComma(value string) string {
+	if value == "" {
+		return ""
+	}
+	return "," + value
 }
 
 func writeFixtureFile(t *testing.T, path, data string) {

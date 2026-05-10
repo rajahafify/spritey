@@ -28,3 +28,5 @@
 ## [2026-05-10] compile | Added make-command article and updated CLI architecture/contract coverage through fifth slice
 ## [2026-05-10] ingest | Make human-output implementation documented (raw/notes/2026-05-10-make-human-output.md)
 ## [2026-05-10] compile | Updated make-command and agent-friendly-cli articles for deterministic non-JSON output sixth slice
+## [2026-05-10] ingest | Render-input readiness implementation documented (raw/notes/2026-05-10-render-input-readiness.md)
+## [2026-05-10] compile | Updated recipe-validation and make-command articles for missing-frame preflight and fallback warning propagation

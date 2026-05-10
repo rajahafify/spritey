@@ -487,9 +487,17 @@ func TestValidateRecipeJSONUnknownLayer(t *testing.T) {
 
 func TestValidateRecipeJSONUnsupportedBodyType(t *testing.T) {
 	var stdout, stderr bytes.Buffer
-	recipe := filepath.Join("..", "..", "testdata", "fixtures", "recipes", "unsupported-body-type.json")
+	assets := t.TempDir()
+	writeTestFile(t, filepath.Join(assets, "pack.json"), `{"schema_version":"1","id":"unsupported-assets","name":"Unsupported Assets","defaults":{"body_type":"male","animations":["idle"],"canvas_width":8}}`)
+	writeTestFile(t, filepath.Join(assets, "sheet_definitions", "body", "body_human.json"), `{"name":"Human Body","type_name":"body","layer_1":{"zPos":10,"male":"body/human/male/"},"animations":["idle"]}`)
+	writeTestFile(t, filepath.Join(assets, "palette_definitions", ".gitkeep"), "")
+	writeTestFile(t, filepath.Join(assets, "spritesheets", ".gitkeep"), "")
+	makeDeterministicLayerPNG(t, filepath.Join(assets, "spritesheets", "body", "human", "male", "idle.png"), color.RGBA{R: 100, G: 120, B: 220, A: 255})
 
-	code := run([]string{"validate", recipe, "--assets", fixturePath("basic-assets"), "--json"}, &stdout, &stderr)
+	recipe := filepath.Join(t.TempDir(), "unsupported.json")
+	writeTestFile(t, recipe, `{"body_type":"child","selections":{"body":{"id":"body_human"}}}`)
+
+	code := run([]string{"validate", recipe, "--assets", assets, "--json"}, &stdout, &stderr)
 	if code != 5 {
 		t.Fatalf("expected exit code 5, got %d", code)
 	}
@@ -497,6 +505,54 @@ func TestValidateRecipeJSONUnsupportedBodyType(t *testing.T) {
 	got := decodeValidateRecipeResponse(t, stdout.Bytes())
 	if got.OK || len(got.Errors) != 1 || got.Errors[0].Code != "UNSUPPORTED_BODY_TYPE" {
 		t.Fatalf("unexpected error response: %+v", got)
+	}
+}
+
+func TestValidateRecipeJSONMissingSpriteFrame(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	assets, recipe := writeReadinessCLIFixture(t, readinessCLIFixtureOptions{
+		recipeBodyType:      "male",
+		missingFallback:     "male",
+		requiredAnimations:  []string{"idle", "walk"},
+		includeBodyIdle:     true,
+		includeBodyWalk:     true,
+		includeWeaponIdle:   true,
+		includeWeaponWalk:   false,
+		weaponHasFemalePath: true,
+	})
+
+	code := run([]string{"validate", recipe, "--assets", assets, "--json"}, &stdout, &stderr)
+	if code != 5 {
+		t.Fatalf("expected exit code 5, got %d", code)
+	}
+	got := decodeValidateRecipeResponse(t, stdout.Bytes())
+	if got.OK || len(got.Errors) != 1 || got.Errors[0].Code != "MISSING_SPRITE_FRAME" {
+		t.Fatalf("unexpected error response: %+v", got)
+	}
+}
+
+func TestValidateRecipeJSONFallbackPathWarning(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	assets, recipe := writeReadinessCLIFixture(t, readinessCLIFixtureOptions{
+		recipeBodyType:        "female",
+		missingFallback:       "male",
+		requiredAnimations:    []string{"idle"},
+		includeBodyIdle:       true,
+		includeBodyFemaleIdle: true,
+		includeWeaponIdle:     true,
+		weaponHasFemalePath:   false,
+	})
+
+	code := run([]string{"validate", recipe, "--assets", assets, "--json"}, &stdout, &stderr)
+	if code != 0 {
+		t.Fatalf("expected exit code 0, got %d stderr=%q stdout=%q", code, stderr.String(), stdout.String())
+	}
+	got := decodeValidateRecipeResponse(t, stdout.Bytes())
+	if !got.OK {
+		t.Fatalf("expected success response: %+v", got)
+	}
+	if len(got.Warnings) != 1 {
+		t.Fatalf("expected one warning, got %+v", got.Warnings)
 	}
 }
 
@@ -907,6 +963,74 @@ func TestMakeRenderFailureIsExit6(t *testing.T) {
 	}
 }
 
+func TestMakeMissingSpriteFrameMapsToExit3AndNoOutput(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	assets, recipe := writeReadinessCLIFixture(t, readinessCLIFixtureOptions{
+		recipeBodyType:      "male",
+		missingFallback:     "male",
+		requiredAnimations:  []string{"idle", "walk"},
+		includeBodyIdle:     true,
+		includeBodyWalk:     true,
+		includeWeaponIdle:   true,
+		includeWeaponWalk:   false,
+		weaponHasFemalePath: true,
+	})
+	out := filepath.Join(t.TempDir(), "sprite.png")
+	report := filepath.Join(t.TempDir(), "sprite.report.json")
+
+	code := run([]string{"make", recipe, "--assets", assets, "--out", out, "--report", report, "--json"}, &stdout, &stderr)
+	if code != 3 {
+		t.Fatalf("expected exit code 3, got %d stderr=%q stdout=%q", code, stderr.String(), stdout.String())
+	}
+	got := decodeMakeResponse(t, stdout.Bytes())
+	if got.OK || len(got.Errors) != 1 || got.Errors[0].Code != "MISSING_SPRITE_FRAME" {
+		t.Fatalf("unexpected response: %+v", got)
+	}
+	if _, err := os.Stat(out); !os.IsNotExist(err) {
+		t.Fatalf("expected png output not to exist, stat err=%v", err)
+	}
+}
+
+func TestMakeFallbackWarningInJSONAndReport(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	assets, recipe := writeReadinessCLIFixture(t, readinessCLIFixtureOptions{
+		recipeBodyType:        "female",
+		missingFallback:       "male",
+		requiredAnimations:    []string{"idle"},
+		includeBodyIdle:       true,
+		includeBodyFemaleIdle: true,
+		includeWeaponIdle:     true,
+		weaponHasFemalePath:   false,
+	})
+	out := filepath.Join(t.TempDir(), "sprite.png")
+	report := filepath.Join(t.TempDir(), "sprite.report.json")
+
+	code := run([]string{"make", recipe, "--assets", assets, "--out", out, "--report", report, "--json"}, &stdout, &stderr)
+	if code != 0 {
+		t.Fatalf("expected exit code 0, got %d stderr=%q stdout=%q", code, stderr.String(), stdout.String())
+	}
+	got := decodeMakeResponse(t, stdout.Bytes())
+	if !got.OK {
+		t.Fatalf("expected success: %+v", got)
+	}
+	if len(got.Warnings) != 1 {
+		t.Fatalf("expected warning in make response, got %+v", got.Warnings)
+	}
+
+	reportData, err := os.ReadFile(report)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var reportJSON map[string]interface{}
+	if err := json.Unmarshal(reportData, &reportJSON); err != nil {
+		t.Fatal(err)
+	}
+	warnings, ok := reportJSON["warnings"].([]interface{})
+	if !ok || len(warnings) != 1 {
+		t.Fatalf("expected warning in report, got %+v", reportJSON["warnings"])
+	}
+}
+
 func decodeCatalogResponse(t *testing.T, data []byte) catalogTestResponse {
 	t.Helper()
 
@@ -1044,6 +1168,80 @@ func makeDeterministicLayerPNG(t *testing.T, path string, fill color.RGBA) {
 	if err := png.Encode(file, img); err != nil {
 		t.Fatal(err)
 	}
+}
+
+type readinessCLIFixtureOptions struct {
+	recipeBodyType        string
+	missingFallback       string
+	requiredAnimations    []string
+	includeBodyIdle       bool
+	includeBodyFemaleIdle bool
+	includeBodyWalk       bool
+	includeWeaponIdle     bool
+	includeWeaponWalk     bool
+	weaponHasFemalePath   bool
+}
+
+func writeReadinessCLIFixture(t *testing.T, opts readinessCLIFixtureOptions) (string, string) {
+	t.Helper()
+	root := t.TempDir()
+	assets := filepath.Join(root, "assets")
+
+	recipeBodyType := opts.recipeBodyType
+	if recipeBodyType == "" {
+		recipeBodyType = "male"
+	}
+	missingFallback := opts.missingFallback
+	if missingFallback == "" {
+		missingFallback = "male"
+	}
+	requiredAnimations := opts.requiredAnimations
+	if len(requiredAnimations) == 0 {
+		requiredAnimations = []string{"idle"}
+	}
+	animationsJSON := `["` + requiredAnimations[0] + `"`
+	for i := 1; i < len(requiredAnimations); i++ {
+		animationsJSON += `,"` + requiredAnimations[i] + `"`
+	}
+	animationsJSON += `]`
+
+	weaponFemale := `"female":"weapon/sword/female/"`
+	if !opts.weaponHasFemalePath {
+		weaponFemale = ""
+	}
+
+	writeTestFile(t, filepath.Join(assets, "pack.json"), `{"schema_version":"1","id":"cli-readiness","name":"CLI Readiness","defaults":{"body_type":"male","animations":`+animationsJSON+`,"canvas_width":8,"missing_body_type_fallback":"`+missingFallback+`"}}`)
+	writeTestFile(t, filepath.Join(assets, "sheet_definitions", "body", "body_human.json"), `{"name":"Human Body","type_name":"body","layer_1":{"zPos":10,"male":"body/human/male/","female":"body/human/female/"},"animations":["idle","walk"]}`)
+	writeTestFile(t, filepath.Join(assets, "sheet_definitions", "weapon", "sword_training.json"), `{"name":"Training Sword","type_name":"weapon","layer_1":{"zPos":30,"male":"weapon/sword/male/"`+leadingCommaIfNotEmpty(weaponFemale)+`},"animations":["idle","walk"]}`)
+	writeTestFile(t, filepath.Join(assets, "palette_definitions", ".gitkeep"), "")
+	writeTestFile(t, filepath.Join(assets, "spritesheets", ".gitkeep"), "")
+
+	if opts.includeBodyIdle {
+		makeDeterministicLayerPNG(t, filepath.Join(assets, "spritesheets", "body", "human", "male", "idle.png"), color.RGBA{R: 40, G: 100, B: 200, A: 255})
+	}
+	if opts.includeBodyWalk {
+		makeDeterministicLayerPNG(t, filepath.Join(assets, "spritesheets", "body", "human", "male", "walk.png"), color.RGBA{R: 50, G: 110, B: 210, A: 255})
+	}
+	if opts.includeBodyFemaleIdle {
+		makeDeterministicLayerPNG(t, filepath.Join(assets, "spritesheets", "body", "human", "female", "idle.png"), color.RGBA{R: 44, G: 104, B: 206, A: 255})
+	}
+	if opts.includeWeaponIdle {
+		makeDeterministicLayerPNG(t, filepath.Join(assets, "spritesheets", "weapon", "sword", "male", "idle.png"), color.RGBA{R: 200, G: 40, B: 80, A: 255})
+	}
+	if opts.includeWeaponWalk {
+		makeDeterministicLayerPNG(t, filepath.Join(assets, "spritesheets", "weapon", "sword", "male", "walk.png"), color.RGBA{R: 210, G: 50, B: 90, A: 255})
+	}
+
+	recipe := filepath.Join(root, "recipe.json")
+	writeTestFile(t, recipe, `{"body_type":"`+recipeBodyType+`","selections":{"body":{"id":"body_human"},"weapon":{"id":"sword_training"}}}`)
+	return assets, recipe
+}
+
+func leadingCommaIfNotEmpty(value string) string {
+	if value == "" {
+		return ""
+	}
+	return "," + value
 }
 
 func pngSHA256(t *testing.T, path string) string {
