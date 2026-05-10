@@ -2,6 +2,7 @@
 title: "Agent-Friendly CLI"
 category: concept
 sources:
+  - raw/notes/2026-05-10-assets-validation.md
   - raw/notes/2026-05-10-recipe-validation.md
   - raw/notes/2026-05-10-inspect-layer.md
   - raw/notes/2026-05-10-catalog-foundation.md
@@ -30,12 +31,13 @@ The intended command family is:
 
 ```bash
 spritey catalog --assets ./assets --json
+spritey assets validate --assets ./assets --json
 spritey inspect layer <layer-id> --assets ./assets --json
 spritey validate recipe.json --assets ./assets --json
 spritey make recipe.json --assets ./assets --out output/sprite.png --report output/sprite.report.json
 ```
 
-The first implemented product slice is `spritey catalog --assets <dir> --json`. The second implemented slice is `spritey inspect layer <layer-id> --assets <dir> --json`. The third implemented slice is `spritey validate <recipe-path> --assets <dir> --json`.
+The first implemented product slice is `spritey catalog --assets <dir> --json`. The second implemented slice is `spritey inspect layer <layer-id> --assets <dir> --json`. The third implemented slice is `spritey validate <recipe-path> --assets <dir> --json`. The fourth implemented slice is `spritey assets validate --assets <dir> --json`.
 
 ## Design Implications
 
@@ -49,12 +51,14 @@ The first implemented product slice is `spritey catalog --assets <dir> --json`. 
 
 - [[compatible-assets|Compatible Assets]] ([Compatible Assets](compatible-assets.md)) - asset pack contract.
 - [[catalog-foundation|Catalog Foundation]] ([Catalog Foundation](catalog-foundation.md)) - implemented catalog command.
+- [[assets-validation|Assets Validation]] ([Assets Validation](assets-validation.md)) - implemented assets preflight command.
 - [[inspect-layer|Inspect Layer]] ([Inspect Layer](inspect-layer.md)) - implemented layer inspection command.
 - [[recipe-validation|Recipe Validation]] ([Recipe Validation](recipe-validation.md)) - implemented recipe validation command.
 - [[spec-driven-development|Spec-Driven Development]] ([Spec-Driven Development](../topics/spec-driven-development.md)) - development workflow that protects the CLI contract.
 
 ## Sources
 
+- [Assets Validation Implementation](../../raw/notes/2026-05-10-assets-validation.md) - fourth implemented product slice.
 - [Recipe Validation Implementation](../../raw/notes/2026-05-10-recipe-validation.md) - third implemented product slice.
 - [Inspect Layer Implementation](../../raw/notes/2026-05-10-inspect-layer.md) - second implemented product slice.
 - [Catalog Foundation Implementation](../../raw/notes/2026-05-10-catalog-foundation.md) - first implemented product slice.

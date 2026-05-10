@@ -6,8 +6,8 @@ Last updated: 2026-05-10
 
 ## Statistics
 
-- Sources: 6 raw documents
-- Articles: 7 compiled wiki articles
+- Sources: 7 raw documents
+- Articles: 8 compiled wiki articles
 - Inventory records: 0 tracked items
 - Datasets: 0 manifests
 - Outputs: 0 generated artifacts
@@ -32,6 +32,7 @@ Last updated: 2026-05-10
 
 ## Recent Changes
 
+- 2026-05-10: Implemented assets validation and documented the fourth CLI slice.
 - 2026-05-10: Implemented recipe validation and documented the third CLI slice.
 - 2026-05-10: Implemented inspect layer and documented the second CLI slice.
 - 2026-05-10: Implemented catalog foundation and documented the first real CLI slice.

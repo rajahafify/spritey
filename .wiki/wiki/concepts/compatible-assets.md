@@ -2,6 +2,7 @@
 title: "Compatible Assets"
 category: concept
 sources:
+  - raw/notes/2026-05-10-assets-validation.md
   - raw/notes/2026-05-10-spritey-cli-contract.md
   - raw/repos/2026-05-10-python-reference-implementation.md
 created: 2026-05-10
@@ -31,6 +32,12 @@ assets/
 
 `pack.json` owns pack-level defaults. This prevents Spritey from hardcoding behavior that belongs to the asset pack.
 
+The implemented preflight command for this minimum structure is:
+
+```bash
+spritey assets validate --assets ./assets --json
+```
+
 ## Pack Defaults
 
 Expected defaults include:
@@ -49,7 +56,9 @@ Spritey must not commit third-party sprite assets. The repository contains the C
 ## See Also
 
 - [[agent-friendly-cli|Agent-Friendly CLI]] ([Agent-Friendly CLI](agent-friendly-cli.md)) - commands that consume assets.
+- [[assets-validation|Assets Validation]] ([Assets Validation](assets-validation.md)) - structure preflight for compatible assets directories.
 
 ## Sources
 
+- [Assets Validation Implementation](../../raw/notes/2026-05-10-assets-validation.md) - implemented assets-pack structure checks.
 - [Spritey CLI Contract](../../raw/notes/2026-05-10-spritey-cli-contract.md) - assets directory and `pack.json` defaults.

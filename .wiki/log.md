@@ -22,3 +22,5 @@
 ## [2026-05-10] compile | Added inspect-layer article and updated CLI/architecture articles
 ## [2026-05-10] ingest | Recipe-validation implementation documented (raw/notes/2026-05-10-recipe-validation.md)
 ## [2026-05-10] compile | Added recipe-validation article and updated CLI/architecture articles
+## [2026-05-10] ingest | Assets-validation implementation documented (raw/notes/2026-05-10-assets-validation.md)
+## [2026-05-10] compile | Added assets-validation article and updated CLI/architecture/assets articles

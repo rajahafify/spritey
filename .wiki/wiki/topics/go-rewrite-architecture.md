@@ -2,6 +2,7 @@
 title: "Go Rewrite Architecture"
 category: topic
 sources:
+  - raw/notes/2026-05-10-assets-validation.md
   - raw/notes/2026-05-10-recipe-validation.md
   - raw/notes/2026-05-10-inspect-layer.md
   - raw/notes/2026-05-10-catalog-foundation.md
@@ -48,12 +49,12 @@ CLI parsing should stay thin. `cmd/spritey/main.go` should delegate to controlle
 
 ## Current State
 
-As of the recipe-validation slice, the root Go app has three metadata commands:
+As of the assets-validation slice, the root Go app has four metadata commands:
 
 - `go.mod`
-- `cmd/spritey/main.go` routes `catalog`, `inspect layer`, and `validate`
+- `cmd/spritey/main.go` routes `catalog`, `assets validate`, `inspect layer`, and `validate`
 - `app/models` defines catalog, inspect, recipe, validation, and error data
-- `app/services` loads asset pack metadata, performs exact layer lookup, and validates recipes against catalog metadata
+- `app/services` loads asset pack metadata, validates assets-pack structure, performs exact layer lookup, and validates recipes against catalog metadata
 - `app/controllers` owns command orchestration and exit codes
 - `app/views` writes JSON responses
 - `Dockerfile`
@@ -73,6 +74,7 @@ GitHub Actions should use Docker Compose through `make docker-ci`. Local develop
 ## Sources
 
 - [Spritey Repository Baseline](../../raw/repos/2026-05-10-spritey-repo-baseline.md) - current tree and implementation state.
+- [Assets Validation Implementation](../../raw/notes/2026-05-10-assets-validation.md) - fourth implemented metadata command.
 - [Recipe Validation Implementation](../../raw/notes/2026-05-10-recipe-validation.md) - third implemented metadata command.
 - [Inspect Layer Implementation](../../raw/notes/2026-05-10-inspect-layer.md) - second implemented metadata command.
 - [Catalog Foundation Implementation](../../raw/notes/2026-05-10-catalog-foundation.md) - first implemented command and MVC package split.

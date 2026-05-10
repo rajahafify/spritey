@@ -8,6 +8,7 @@ Last updated: 2026-05-10
 
 | File | Summary | Tags | Updated |
 |------|---------|------|---------|
+| [notes/2026-05-10-assets-validation.md](notes/2026-05-10-assets-validation.md) | Fourth Spritey product slice implements structural assets-pack preflight validation. | spritey, assets, validate | 2026-05-10 |
 | [notes/2026-05-10-recipe-validation.md](notes/2026-05-10-recipe-validation.md) | Third Spritey product slice implements metadata-only recipe validation. | spritey, validate, recipes | 2026-05-10 |
 | [notes/2026-05-10-inspect-layer.md](notes/2026-05-10-inspect-layer.md) | Second Spritey product slice implements inspect-layer JSON output and structured lookup errors. | spritey, inspect, cli | 2026-05-10 |
 | [notes/2026-05-10-catalog-foundation.md](notes/2026-05-10-catalog-foundation.md) | First Spritey product slice implements catalog JSON output and structured asset errors. | spritey, catalog, cli | 2026-05-10 |
@@ -22,6 +23,7 @@ Last updated: 2026-05-10
 
 ## Recent Changes
 
+- 2026-05-10: Added assets-validation implementation note.
 - 2026-05-10: Added recipe-validation implementation note.
 - 2026-05-10: Added inspect-layer implementation note.
 - 2026-05-10: Added catalog foundation implementation note.

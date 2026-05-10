@@ -22,6 +22,22 @@ type Catalog struct {
 	Warnings   []string   `json:"warnings"`
 }
 
+type AssetsValidationResult struct {
+	Assets   AssetsValidationTarget  `json:"assets"`
+	Pack     Pack                    `json:"pack"`
+	Summary  AssetsValidationSummary `json:"summary"`
+	Warnings []string                `json:"warnings"`
+}
+
+type AssetsValidationTarget struct {
+	Path string `json:"path"`
+}
+
+type AssetsValidationSummary struct {
+	CategoryCount int `json:"category_count"`
+	LayerCount    int `json:"layer_count"`
+}
+
 type Category struct {
 	ID     string  `json:"id"`
 	Layers []Layer `json:"layers"`

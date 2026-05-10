@@ -29,6 +29,12 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 	}
 
 	switch args[0] {
+	case "assets":
+		options, problem := parseAssetsValidateOptions(args[1:])
+		if problem != nil {
+			return controllers.WriteAssetsValidationProblem(*problem, controllers.ExitInvalidCLIUsage, options.JSON, stdout, stderr)
+		}
+		return controllers.NewAssetsController().Validate(options, stdout, stderr)
 	case "catalog":
 		options, problem := parseCatalogOptions(args[1:])
 		if problem != nil {
@@ -60,6 +66,43 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 			stderr,
 		)
 	}
+}
+
+func parseAssetsValidateOptions(args []string) (controllers.AssetsValidateOptions, *models.Problem) {
+	options := controllers.AssetsValidateOptions{}
+	if len(args) == 0 || isFlag(args[0]) {
+		options.JSON = hasJSONFlag(args)
+		return options, nil
+	}
+
+	options.Subcommand = args[0]
+	return parseAssetsValidateFlags(options, args[1:])
+}
+
+func parseAssetsValidateFlags(options controllers.AssetsValidateOptions, args []string) (controllers.AssetsValidateOptions, *models.Problem) {
+	for i := 0; i < len(args); i++ {
+		switch args[i] {
+		case "--json":
+			options.JSON = true
+		case "--assets":
+			if i+1 >= len(args) {
+				return options, &models.Problem{
+					Code:    "MISSING_ASSETS_VALUE",
+					Message: "--assets requires a value",
+					Field:   "assets",
+				}
+			}
+			options.AssetsPath = args[i+1]
+			i++
+		default:
+			return options, &models.Problem{
+				Code:    "UNKNOWN_ARGUMENT",
+				Message: fmt.Sprintf("unknown argument: %s", args[i]),
+				Field:   "argument",
+			}
+		}
+	}
+	return options, nil
 }
 
 func parseValidateOptions(args []string) (controllers.ValidateOptions, *models.Problem) {

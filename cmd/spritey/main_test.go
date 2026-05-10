@@ -79,6 +79,28 @@ type validateRecipeTestResponse struct {
 	} `json:"errors"`
 }
 
+type assetsValidationTestResponse struct {
+	OK     bool `json:"ok"`
+	Assets *struct {
+		Path string `json:"path"`
+	} `json:"assets"`
+	Pack *struct {
+		SchemaVersion string `json:"schema_version"`
+		ID            string `json:"id"`
+		Name          string `json:"name"`
+	} `json:"pack"`
+	Summary *struct {
+		CategoryCount int `json:"category_count"`
+		LayerCount    int `json:"layer_count"`
+	} `json:"summary"`
+	Warnings []string `json:"warnings"`
+	Errors   []struct {
+		Code    string `json:"code"`
+		Message string `json:"message"`
+		Field   string `json:"field,omitempty"`
+	} `json:"errors"`
+}
+
 func TestCatalogJSONSuccess(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	assets := filepath.Join("..", "..", "testdata", "fixtures", "basic-assets")
@@ -452,6 +474,201 @@ func TestValidateRecipeJSONUnsupportedBodyType(t *testing.T) {
 	}
 }
 
+func TestAssetsValidateJSONSuccess(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	assets := fixturePath("basic-assets")
+
+	code := run([]string{"assets", "validate", "--assets", assets, "--json"}, &stdout, &stderr)
+	if code != 0 {
+		t.Fatalf("expected exit code 0, got %d, stderr=%q stdout=%q", code, stderr.String(), stdout.String())
+	}
+	if stderr.Len() != 0 {
+		t.Fatalf("expected empty stderr, got %q", stderr.String())
+	}
+
+	got := decodeAssetsValidationResponse(t, stdout.Bytes())
+	if !got.OK {
+		t.Fatalf("expected ok response: %+v", got)
+	}
+	if got.Assets == nil || got.Assets.Path != assets {
+		t.Fatalf("unexpected assets payload: %+v", got.Assets)
+	}
+	if got.Pack == nil || got.Pack.ID != "basic-test-assets" || got.Pack.Name != "Basic Test Assets" {
+		t.Fatalf("unexpected pack: %+v", got.Pack)
+	}
+	if got.Summary == nil || got.Summary.CategoryCount != 2 || got.Summary.LayerCount != 2 {
+		t.Fatalf("unexpected summary: %+v", got.Summary)
+	}
+	if len(got.Warnings) != 0 || len(got.Errors) != 0 {
+		t.Fatalf("expected no warnings or errors, got warnings=%+v errors=%+v", got.Warnings, got.Errors)
+	}
+}
+
+func TestAssetsValidateJSONMissingSubcommand(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+
+	code := run([]string{"assets", "--json"}, &stdout, &stderr)
+	if code != 2 {
+		t.Fatalf("expected exit code 2, got %d", code)
+	}
+
+	got := decodeAssetsValidationResponse(t, stdout.Bytes())
+	if got.OK || len(got.Errors) != 1 || got.Errors[0].Code != "MISSING_ASSETS_SUBCOMMAND" {
+		t.Fatalf("unexpected error response: %+v", got)
+	}
+}
+
+func TestAssetsValidateJSONUnsupportedSubcommand(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+
+	code := run([]string{"assets", "inspect", "--json"}, &stdout, &stderr)
+	if code != 2 {
+		t.Fatalf("expected exit code 2, got %d", code)
+	}
+
+	got := decodeAssetsValidationResponse(t, stdout.Bytes())
+	if got.OK || len(got.Errors) != 1 || got.Errors[0].Code != "UNSUPPORTED_ASSETS_SUBCOMMAND" {
+		t.Fatalf("unexpected error response: %+v", got)
+	}
+}
+
+func TestAssetsValidateJSONMissingAssets(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+
+	code := run([]string{"assets", "validate", "--json"}, &stdout, &stderr)
+	if code != 2 {
+		t.Fatalf("expected exit code 2, got %d", code)
+	}
+
+	got := decodeAssetsValidationResponse(t, stdout.Bytes())
+	if got.OK || len(got.Errors) != 1 || got.Errors[0].Code != "MISSING_ASSETS" {
+		t.Fatalf("unexpected error response: %+v", got)
+	}
+}
+
+func TestAssetsValidateJSONAssetsDirectoryNotFound(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	assets := filepath.Join(t.TempDir(), "missing-assets")
+
+	code := run([]string{"assets", "validate", "--assets", assets, "--json"}, &stdout, &stderr)
+	if code != 3 {
+		t.Fatalf("expected exit code 3, got %d", code)
+	}
+
+	got := decodeAssetsValidationResponse(t, stdout.Bytes())
+	if got.OK || len(got.Errors) != 1 || got.Errors[0].Code != "ASSETS_DIRECTORY_NOT_FOUND" {
+		t.Fatalf("unexpected error response: %+v", got)
+	}
+}
+
+func TestAssetsValidateJSONMissingPack(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	assets := t.TempDir()
+
+	code := run([]string{"assets", "validate", "--assets", assets, "--json"}, &stdout, &stderr)
+	if code != 3 {
+		t.Fatalf("expected exit code 3, got %d", code)
+	}
+
+	got := decodeAssetsValidationResponse(t, stdout.Bytes())
+	if got.OK || len(got.Errors) != 1 || got.Errors[0].Code != "MISSING_PACK_JSON" {
+		t.Fatalf("unexpected error response: %+v", got)
+	}
+}
+
+func TestAssetsValidateJSONInvalidPack(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	assets := t.TempDir()
+	writeTestFile(t, filepath.Join(assets, "pack.json"), `{not-json}`)
+
+	code := run([]string{"assets", "validate", "--assets", assets, "--json"}, &stdout, &stderr)
+	if code != 3 {
+		t.Fatalf("expected exit code 3, got %d", code)
+	}
+
+	got := decodeAssetsValidationResponse(t, stdout.Bytes())
+	if got.OK || len(got.Errors) != 1 || got.Errors[0].Code != "INVALID_PACK_JSON" {
+		t.Fatalf("unexpected error response: %+v", got)
+	}
+}
+
+func TestAssetsValidateJSONMissingSheetDefinitions(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	assets := t.TempDir()
+	writeTestFile(t, filepath.Join(assets, "pack.json"), `{"schema_version":"1","id":"missing-sheets","name":"Missing Sheets"}`)
+
+	code := run([]string{"assets", "validate", "--assets", assets, "--json"}, &stdout, &stderr)
+	if code != 3 {
+		t.Fatalf("expected exit code 3, got %d", code)
+	}
+
+	got := decodeAssetsValidationResponse(t, stdout.Bytes())
+	if got.OK || len(got.Errors) != 1 || got.Errors[0].Code != "MISSING_SHEET_DEFINITIONS" {
+		t.Fatalf("unexpected error response: %+v", got)
+	}
+}
+
+func TestAssetsValidateJSONInvalidSheetDefinition(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	assets := t.TempDir()
+	writeTestFile(t, filepath.Join(assets, "pack.json"), `{"schema_version":"1","id":"bad-sheet-assets","name":"Bad Sheet Assets"}`)
+	writeTestFile(t, filepath.Join(assets, "sheet_definitions", "bad.json"), `{not-json}`)
+
+	code := run([]string{"assets", "validate", "--assets", assets, "--json"}, &stdout, &stderr)
+	if code != 3 {
+		t.Fatalf("expected exit code 3, got %d", code)
+	}
+
+	got := decodeAssetsValidationResponse(t, stdout.Bytes())
+	if got.OK || len(got.Errors) != 1 || got.Errors[0].Code != "INVALID_SHEET_DEFINITION_JSON" {
+		t.Fatalf("unexpected error response: %+v", got)
+	}
+}
+
+func TestAssetsValidateJSONMissingSpritesheets(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	assets := t.TempDir()
+	writeMinimalAssetsPack(t, assets)
+	if err := os.Remove(filepath.Join(assets, "spritesheets", ".gitkeep")); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Remove(filepath.Join(assets, "spritesheets")); err != nil {
+		t.Fatal(err)
+	}
+
+	code := run([]string{"assets", "validate", "--assets", assets, "--json"}, &stdout, &stderr)
+	if code != 3 {
+		t.Fatalf("expected exit code 3, got %d", code)
+	}
+
+	got := decodeAssetsValidationResponse(t, stdout.Bytes())
+	if got.OK || len(got.Errors) != 1 || got.Errors[0].Code != "MISSING_SPRITESHEETS" {
+		t.Fatalf("unexpected error response: %+v", got)
+	}
+}
+
+func TestAssetsValidateJSONMissingPaletteDefinitions(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	assets := t.TempDir()
+	writeMinimalAssetsPack(t, assets)
+	if err := os.Remove(filepath.Join(assets, "palette_definitions", ".gitkeep")); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Remove(filepath.Join(assets, "palette_definitions")); err != nil {
+		t.Fatal(err)
+	}
+
+	code := run([]string{"assets", "validate", "--assets", assets, "--json"}, &stdout, &stderr)
+	if code != 3 {
+		t.Fatalf("expected exit code 3, got %d", code)
+	}
+
+	got := decodeAssetsValidationResponse(t, stdout.Bytes())
+	if got.OK || len(got.Errors) != 1 || got.Errors[0].Code != "MISSING_PALETTE_DEFINITIONS" {
+		t.Fatalf("unexpected error response: %+v", got)
+	}
+}
+
 func decodeCatalogResponse(t *testing.T, data []byte) catalogTestResponse {
 	t.Helper()
 
@@ -476,6 +693,16 @@ func decodeValidateRecipeResponse(t *testing.T, data []byte) validateRecipeTestR
 	t.Helper()
 
 	var got validateRecipeTestResponse
+	if err := json.Unmarshal(data, &got); err != nil {
+		t.Fatalf("failed to decode JSON %q: %v", string(data), err)
+	}
+	return got
+}
+
+func decodeAssetsValidationResponse(t *testing.T, data []byte) assetsValidationTestResponse {
+	t.Helper()
+
+	var got assetsValidationTestResponse
 	if err := json.Unmarshal(data, &got); err != nil {
 		t.Fatalf("failed to decode JSON %q: %v", string(data), err)
 	}
@@ -508,4 +735,13 @@ func writeTestFile(t *testing.T, path string, data string) {
 	if err := os.WriteFile(path, []byte(data), 0o644); err != nil {
 		t.Fatal(err)
 	}
+}
+
+func writeMinimalAssetsPack(t *testing.T, assets string) {
+	t.Helper()
+
+	writeTestFile(t, filepath.Join(assets, "pack.json"), `{"schema_version":"1","id":"minimal-assets","name":"Minimal Assets"}`)
+	writeTestFile(t, filepath.Join(assets, "sheet_definitions", "body", "body_human.json"), `{"name":"Human Body","type_name":"body","layer_1":{"zPos":10,"male":"body/human/male/"},"animations":["walk"]}`)
+	writeTestFile(t, filepath.Join(assets, "spritesheets", ".gitkeep"), "")
+	writeTestFile(t, filepath.Join(assets, "palette_definitions", ".gitkeep"), "")
 }
