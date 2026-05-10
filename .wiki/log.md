@@ -30,3 +30,5 @@
 ## [2026-05-10] compile | Updated make-command and agent-friendly-cli articles for deterministic non-JSON output sixth slice
 ## [2026-05-10] ingest | Render-input readiness implementation documented (raw/notes/2026-05-10-render-input-readiness.md)
 ## [2026-05-10] compile | Updated recipe-validation and make-command articles for missing-frame preflight and fallback warning propagation
+## [2026-05-10] ingest | Make report provenance implementation documented (raw/notes/2026-05-10-make-report-provenance.md)
+## [2026-05-10] compile | Updated make-command concept coverage for additive report provenance fields

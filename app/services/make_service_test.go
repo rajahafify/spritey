@@ -33,11 +33,22 @@ func TestMakeServiceReportV1FieldsAndOrdering(t *testing.T) {
 	if err := json.Unmarshal(reportData, &got); err != nil {
 		t.Fatal(err)
 	}
-	required := []string{"schema_version", "command", "recipe", "assets", "output", "render", "layers", "warnings"}
+	required := []string{"schema_version", "command", "pack", "recipe", "assets", "output", "render", "layers", "warnings"}
 	for _, key := range required {
 		if _, ok := got[key]; !ok {
 			t.Fatalf("missing report key %q in %+v", key, got)
 		}
+	}
+	pack := got["pack"].(map[string]interface{})
+	if pack["id"] != "make-assets" || pack["name"] != "Make Assets" {
+		t.Fatalf("unexpected pack metadata: %+v", pack)
+	}
+	recipeMeta := got["recipe"].(map[string]interface{})
+	if recipeMeta["path"] != recipe {
+		t.Fatalf("unexpected recipe path: %+v", recipeMeta)
+	}
+	if recipeMeta["body_type_requested"] != "male" || recipeMeta["body_type_effective"] != "male" {
+		t.Fatalf("unexpected recipe body type provenance: %+v", recipeMeta)
 	}
 
 	render := got["render"].(map[string]interface{})
@@ -51,6 +62,12 @@ func TestMakeServiceReportV1FieldsAndOrdering(t *testing.T) {
 	if len(applied) != 2 || applied[0].(string) != "body_human" || applied[1].(string) != "sword_training" {
 		t.Fatalf("unexpected applied ordering: %+v", applied)
 	}
+	composed := layers["composed"].([]interface{})
+	if len(composed) != 2 {
+		t.Fatalf("unexpected composed length: %+v", composed)
+	}
+	assertComposedLayer(t, composed[0], "body", "body_human", 10, "male", "body/human/male", "", 0)
+	assertComposedLayer(t, composed[1], "weapon", "sword_training", 30, "male", "weapon/sword/male", "", 0)
 }
 
 func TestMakeServiceDeterministicPNGHashAndDimensions(t *testing.T) {
@@ -140,6 +157,40 @@ func TestMakeServiceFallbackPathWarningsInResultAndReport(t *testing.T) {
 	warnings, ok := got["warnings"].([]interface{})
 	if !ok || len(warnings) != 1 {
 		t.Fatalf("expected one warning in report, got %+v", got["warnings"])
+	}
+	recipeMeta := got["recipe"].(map[string]interface{})
+	if recipeMeta["body_type_requested"] != "female" || recipeMeta["body_type_effective"] != "female" {
+		t.Fatalf("unexpected recipe body provenance: %+v", recipeMeta)
+	}
+	composed := got["layers"].(map[string]interface{})["composed"].([]interface{})
+	if len(composed) != 2 {
+		t.Fatalf("unexpected composed length: %+v", composed)
+	}
+	assertComposedLayer(t, composed[0], "body", "body_human", 10, "female", "body/human/female", "", 0)
+	assertComposedLayer(t, composed[1], "weapon", "sword_training", 30, "male", "weapon/sword/male", "", 0)
+}
+
+func assertComposedLayer(t *testing.T, value interface{}, category string, id string, zPos int, resolvedBodyType string, resolvedPath string, paletteVariant string, creditCount int) {
+	t.Helper()
+	entry := value.(map[string]interface{})
+	if entry["category"] != category || entry["id"] != id {
+		t.Fatalf("unexpected composed identity: %+v", entry)
+	}
+	if int(entry["z_pos"].(float64)) != zPos {
+		t.Fatalf("unexpected composed z_pos: %+v", entry)
+	}
+	if entry["resolved_body_type"] != resolvedBodyType || entry["resolved_path"] != resolvedPath {
+		t.Fatalf("unexpected resolved fields: %+v", entry)
+	}
+	if entry["palette_variant"] != paletteVariant {
+		t.Fatalf("unexpected palette_variant: %+v", entry)
+	}
+	credits, ok := entry["credits"].([]interface{})
+	if !ok {
+		t.Fatalf("expected non-null credits array, got %+v", entry["credits"])
+	}
+	if len(credits) != creditCount {
+		t.Fatalf("unexpected credits length: %+v", entry)
 	}
 }
 

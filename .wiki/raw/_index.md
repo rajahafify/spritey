@@ -8,6 +8,7 @@ Last updated: 2026-05-10
 
 | File | Summary | Tags | Updated |
 |------|---------|------|---------|
+| [notes/2026-05-10-make-report-provenance.md](notes/2026-05-10-make-report-provenance.md) | Eighth Spritey product slice expands make report v1 with additive provenance metadata and deterministic composed-layer details. | spritey, make, report, provenance | 2026-05-10 |
 | [notes/2026-05-10-render-input-readiness.md](notes/2026-05-10-render-input-readiness.md) | Seventh Spritey product slice adds render-input readiness checks, missing-frame validation failures, and fallback warnings. | spritey, validate, make, readiness | 2026-05-10 |
 | [notes/2026-05-10-make-human-output.md](notes/2026-05-10-make-human-output.md) | Sixth Spritey product slice adds deterministic non-JSON output for make command success paths. | spritey, make, cli | 2026-05-10 |
 | [notes/2026-05-10-make-command.md](notes/2026-05-10-make-command.md) | Fifth Spritey product slice implements make render command with optional report v1 and stable JSON envelopes. | spritey, make, render | 2026-05-10 |
@@ -26,6 +27,7 @@ Last updated: 2026-05-10
 
 ## Recent Changes
 
+- 2026-05-10: Added make-report-provenance implementation note.
 - 2026-05-10: Added render-input-readiness implementation note.
 - 2026-05-10: Added make-human-output implementation note.
 - 2026-05-10: Added make-command implementation note.

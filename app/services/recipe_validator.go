@@ -114,6 +114,7 @@ func (validator RecipeValidator) Validate(recipePath string, assetsPath string) 
 
 	return models.RecipeValidationResult{
 		Path:                 recipePath,
+		BodyTypeRequested:    recipe.BodyType,
 		BodyType:             bodyType,
 		Selections:           validated,
 		Warnings:             warnings,

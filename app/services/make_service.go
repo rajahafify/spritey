@@ -6,8 +6,10 @@ import (
 	"image/draw"
 	"image/png"
 	"os"
+	"path"
 	"path/filepath"
 	"sort"
+	"strings"
 
 	"github.com/rajahafify/spritey/app/models"
 )
@@ -44,6 +46,7 @@ func (service MakeService) Make(recipePath string, assetsPath string, outPath st
 	type appliedLayer struct {
 		Indexed indexedLayer
 		Render  models.RecipeRenderInput
+		Palette string
 	}
 	appliedLayers := make([]appliedLayer, 0, len(validation.Selections))
 	appliedIDs := make([]string, 0, len(validation.Selections))
@@ -52,6 +55,7 @@ func (service MakeService) Make(recipePath string, assetsPath string, outPath st
 		appliedLayers = append(appliedLayers, appliedLayer{
 			Indexed: layer,
 			Render:  renderInputByLayerID[selection.ID],
+			Palette: selection.PaletteVariant,
 		})
 		appliedIDs = append(appliedIDs, selection.ID)
 	}
@@ -122,12 +126,29 @@ func (service MakeService) Make(recipePath string, assetsPath string, outPath st
 	}
 
 	if reportPath != "" {
-		report := models.MakeReportV1{
+		composedLayers := make([]models.MakeReportComposedLayer, 0, len(appliedLayers))
+		for _, layer := range appliedLayers {
+			composedLayers = append(composedLayers, models.MakeReportComposedLayer{
+				Category:         layer.Indexed.Category,
+				ID:               layer.Indexed.Layer.ID,
+				ZPos:             layer.Indexed.Layer.ZPos,
+				ResolvedBodyType: layer.Render.ResolvedBodyType,
+				ResolvedPath:     normalizeSlashPath(layer.Render.ResolvedPath),
+				PaletteVariant:   layer.Palette,
+				Credits:          copyCredits(layer.Indexed.Layer.Credits),
+			})
+		}
+
+		report := models.MakeReportV1Provenance{
 			SchemaVersion: "1",
 			Command:       "make",
 			Warnings:      append([]string{}, validation.Warnings...),
 		}
+		report.Pack.ID = catalog.Pack.ID
+		report.Pack.Name = catalog.Pack.Name
 		report.Recipe.Path = recipePath
+		report.Recipe.BodyTypeEffective = validation.BodyType
+		report.Recipe.BodyTypeRequested = validation.BodyTypeRequested
 		report.Assets.Path = assetsPath
 		report.Output.PNG.Path = outPath
 		report.Render.Canvas.Width = canvasWidth
@@ -135,6 +156,7 @@ func (service MakeService) Make(recipePath string, assetsPath string, outPath st
 		report.Render.FrameCount = len(animationIDs)
 		report.Render.AnimationIDs = animationIDs
 		report.Layers.Applied = appliedIDs
+		report.Layers.Composed = composedLayers
 
 		if err := writeJSONFile(reportPath, report); err != nil {
 			return models.MakeResult{}, &models.MakeProblem{
@@ -199,4 +221,18 @@ func makeProblemFromProblem(problem models.Problem) *models.MakeProblem {
 		Message: problem.Message,
 		Field:   problem.Field,
 	}
+}
+
+func normalizeSlashPath(raw string) string {
+	normalized := strings.ReplaceAll(raw, "\\", "/")
+	return path.Clean(normalized)
+}
+
+func copyCredits(credits []models.Credit) []models.Credit {
+	if len(credits) == 0 {
+		return []models.Credit{}
+	}
+	cloned := make([]models.Credit, len(credits))
+	copy(cloned, credits)
+	return cloned
 }

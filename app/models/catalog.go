@@ -79,6 +79,7 @@ type RecipeSelection struct {
 
 type RecipeValidationResult struct {
 	Path                 string                      `json:"path"`
+	BodyTypeRequested    string                      `json:"-"`
 	BodyType             string                      `json:"body_type"`
 	Selections           []RecipeValidationSelection `json:"selections"`
 	Warnings             []string                    `json:"-"`

@@ -779,6 +779,53 @@ func TestMakeJSONSuccessWithReport(t *testing.T) {
 	}
 }
 
+func TestMakeJSONReportProvenanceAndEnvelopeUnchanged(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	assets, recipe := writeDeterministicMakeFixture(t)
+	out := filepath.Join(t.TempDir(), "sprite.png")
+	report := filepath.Join(t.TempDir(), "sprite.report.json")
+
+	code := run([]string{"make", recipe, "--assets", assets, "--out", out, "--report", report, "--json"}, &stdout, &stderr)
+	if code != 0 {
+		t.Fatalf("expected exit code 0, got %d stderr=%q stdout=%q", code, stderr.String(), stdout.String())
+	}
+
+	var envelope map[string]interface{}
+	if err := json.Unmarshal(stdout.Bytes(), &envelope); err != nil {
+		t.Fatal(err)
+	}
+	assertHasKeys(t, envelope, "ok", "command", "outputs", "summary", "warnings", "errors")
+	if len(envelope) != 6 {
+		t.Fatalf("expected unchanged make JSON top-level envelope keys, got %+v", envelope)
+	}
+
+	reportData, err := os.ReadFile(report)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var reportJSON map[string]interface{}
+	if err := json.Unmarshal(reportData, &reportJSON); err != nil {
+		t.Fatal(err)
+	}
+	pack, ok := reportJSON["pack"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected pack metadata in report: %+v", reportJSON)
+	}
+	if pack["id"] != "make-assets" || pack["name"] != "Make Assets" {
+		t.Fatalf("unexpected report pack metadata: %+v", pack)
+	}
+
+	recipeMeta := reportJSON["recipe"].(map[string]interface{})
+	if recipeMeta["path"] != recipe || recipeMeta["body_type_requested"] != "male" || recipeMeta["body_type_effective"] != "male" {
+		t.Fatalf("unexpected report recipe provenance: %+v", recipeMeta)
+	}
+	layers := reportJSON["layers"].(map[string]interface{})
+	composed, ok := layers["composed"].([]interface{})
+	if !ok || len(composed) != 2 {
+		t.Fatalf("expected composed layer provenance in report, got %+v", layers["composed"])
+	}
+}
+
 func TestMakeJSONSuccessWithoutReport(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	assets, recipe := writeDeterministicMakeFixture(t)
