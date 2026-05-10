@@ -35,6 +35,31 @@ type catalogTestResponse struct {
 	} `json:"errors"`
 }
 
+type inspectLayerTestResponse struct {
+	OK    bool `json:"ok"`
+	Layer *struct {
+		Category        string   `json:"category"`
+		ID              string   `json:"id"`
+		Name            string   `json:"name"`
+		ZPos            int      `json:"z_pos"`
+		BodyTypes       []string `json:"body_types"`
+		Animations      []string `json:"animations"`
+		RecolorMaterial string   `json:"recolor_material,omitempty"`
+		PathPrefix      string   `json:"path_prefix,omitempty"`
+		Credits         []struct {
+			File     string   `json:"file,omitempty"`
+			Authors  []string `json:"authors,omitempty"`
+			Licenses []string `json:"licenses,omitempty"`
+		} `json:"credits"`
+	} `json:"layer"`
+	Warnings []string `json:"warnings"`
+	Errors   []struct {
+		Code    string `json:"code"`
+		Message string `json:"message"`
+		Field   string `json:"field,omitempty"`
+	} `json:"errors"`
+}
+
 func TestCatalogJSONSuccess(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	assets := filepath.Join("..", "..", "testdata", "fixtures", "basic-assets")
@@ -139,10 +164,138 @@ func TestCatalogJSONInvalidSheetDefinition(t *testing.T) {
 	}
 }
 
+func TestInspectLayerJSONSuccess(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	assets := filepath.Join("..", "..", "testdata", "fixtures", "basic-assets")
+
+	code := run([]string{"inspect", "layer", "body_human", "--assets", assets, "--json"}, &stdout, &stderr)
+	if code != 0 {
+		t.Fatalf("expected exit code 0, got %d, stderr=%q stdout=%q", code, stderr.String(), stdout.String())
+	}
+	if stderr.Len() != 0 {
+		t.Fatalf("expected empty stderr, got %q", stderr.String())
+	}
+
+	got := decodeInspectLayerResponse(t, stdout.Bytes())
+	if !got.OK {
+		t.Fatalf("expected ok response: %+v", got)
+	}
+	if got.Layer == nil {
+		t.Fatal("expected layer payload")
+	}
+	if got.Layer.Category != "body" || got.Layer.ID != "body_human" || got.Layer.Name != "Human Body" {
+		t.Fatalf("unexpected layer: %+v", got.Layer)
+	}
+	if got.Layer.ZPos != 10 || got.Layer.RecolorMaterial != "skin" || got.Layer.PathPrefix != "body/human/female/" {
+		t.Fatalf("unexpected layer details: %+v", got.Layer)
+	}
+	assertStrings(t, got.Layer.BodyTypes, []string{"female", "male"})
+	assertStrings(t, got.Layer.Animations, []string{"walk"})
+	if len(got.Errors) != 0 {
+		t.Fatalf("expected no errors, got %+v", got.Errors)
+	}
+}
+
+func TestInspectLayerJSONMissingTarget(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+
+	code := run([]string{"inspect", "--json"}, &stdout, &stderr)
+	if code != 2 {
+		t.Fatalf("expected exit code 2, got %d", code)
+	}
+
+	got := decodeInspectLayerResponse(t, stdout.Bytes())
+	if got.OK || len(got.Errors) != 1 || got.Errors[0].Code != "MISSING_INSPECT_TARGET" {
+		t.Fatalf("unexpected error response: %+v", got)
+	}
+}
+
+func TestInspectLayerJSONUnsupportedTarget(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+
+	code := run([]string{"inspect", "pack", "--json"}, &stdout, &stderr)
+	if code != 2 {
+		t.Fatalf("expected exit code 2, got %d", code)
+	}
+
+	got := decodeInspectLayerResponse(t, stdout.Bytes())
+	if got.OK || len(got.Errors) != 1 || got.Errors[0].Code != "UNSUPPORTED_INSPECT_TARGET" {
+		t.Fatalf("unexpected error response: %+v", got)
+	}
+}
+
+func TestInspectLayerJSONMissingLayerID(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+
+	code := run([]string{"inspect", "layer", "--json"}, &stdout, &stderr)
+	if code != 2 {
+		t.Fatalf("expected exit code 2, got %d", code)
+	}
+
+	got := decodeInspectLayerResponse(t, stdout.Bytes())
+	if got.OK || len(got.Errors) != 1 || got.Errors[0].Code != "MISSING_LAYER_ID" {
+		t.Fatalf("unexpected error response: %+v", got)
+	}
+}
+
+func TestInspectLayerJSONUnknownLayerID(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	assets := filepath.Join("..", "..", "testdata", "fixtures", "basic-assets")
+
+	code := run([]string{"inspect", "layer", "missing_layer", "--assets", assets, "--json"}, &stdout, &stderr)
+	if code != 5 {
+		t.Fatalf("expected exit code 5, got %d", code)
+	}
+
+	got := decodeInspectLayerResponse(t, stdout.Bytes())
+	if got.OK || len(got.Errors) != 1 || got.Errors[0].Code != "UNKNOWN_LAYER_ID" {
+		t.Fatalf("unexpected error response: %+v", got)
+	}
+}
+
+func TestInspectLayerJSONMissingAssets(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+
+	code := run([]string{"inspect", "layer", "body_human", "--json"}, &stdout, &stderr)
+	if code != 2 {
+		t.Fatalf("expected exit code 2, got %d", code)
+	}
+
+	got := decodeInspectLayerResponse(t, stdout.Bytes())
+	if got.OK || len(got.Errors) != 1 || got.Errors[0].Code != "MISSING_ASSETS" {
+		t.Fatalf("unexpected error response: %+v", got)
+	}
+}
+
+func TestInspectLayerJSONInvalidAssetsDirectory(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	assets := filepath.Join(t.TempDir(), "missing-assets")
+
+	code := run([]string{"inspect", "layer", "body_human", "--assets", assets, "--json"}, &stdout, &stderr)
+	if code != 3 {
+		t.Fatalf("expected exit code 3, got %d", code)
+	}
+
+	got := decodeInspectLayerResponse(t, stdout.Bytes())
+	if got.OK || len(got.Errors) != 1 || got.Errors[0].Code != "ASSETS_DIRECTORY_NOT_FOUND" {
+		t.Fatalf("unexpected error response: %+v", got)
+	}
+}
+
 func decodeCatalogResponse(t *testing.T, data []byte) catalogTestResponse {
 	t.Helper()
 
 	var got catalogTestResponse
+	if err := json.Unmarshal(data, &got); err != nil {
+		t.Fatalf("failed to decode JSON %q: %v", string(data), err)
+	}
+	return got
+}
+
+func decodeInspectLayerResponse(t *testing.T, data []byte) inspectLayerTestResponse {
+	t.Helper()
+
+	var got inspectLayerTestResponse
 	if err := json.Unmarshal(data, &got); err != nil {
 		t.Fatalf("failed to decode JSON %q: %v", string(data), err)
 	}

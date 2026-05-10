@@ -38,6 +38,18 @@ type Layer struct {
 	Credits         []Credit `json:"credits"`
 }
 
+type InspectLayerResult struct {
+	Category        string   `json:"category"`
+	ID              string   `json:"id"`
+	Name            string   `json:"name"`
+	ZPos            int      `json:"z_pos"`
+	BodyTypes       []string `json:"body_types"`
+	Animations      []string `json:"animations"`
+	RecolorMaterial string   `json:"recolor_material,omitempty"`
+	PathPrefix      string   `json:"path_prefix,omitempty"`
+	Credits         []Credit `json:"credits"`
+}
+
 type Credit struct {
 	File     string   `json:"file,omitempty"`
 	Notes    string   `json:"notes,omitempty"`

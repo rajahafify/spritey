@@ -11,8 +11,10 @@ Last updated: 2026-05-10
 | [agent-friendly-cli.md](agent-friendly-cli.md) | Spritey's CLI is designed for agents through file-based inputs, explicit outputs, validation, JSON output, and stable errors. | spritey, cli, agents | 2026-05-10 |
 | [catalog-foundation.md](catalog-foundation.md) | Spritey's first product slice implements deterministic catalog JSON for compatible assets. | spritey, catalog, cli | 2026-05-10 |
 | [compatible-assets.md](compatible-assets.md) | Spritey treats assets as compatible packs with pack.json defaults; assets are user-provided at runtime. | spritey, assets, pack-json | 2026-05-10 |
+| [inspect-layer.md](inspect-layer.md) | Spritey's second product slice returns one catalog layer's metadata for agent recipe authoring. | spritey, inspect, cli | 2026-05-10 |
 
 ## Recent Changes
 
+- 2026-05-10: Added inspect-layer concept.
 - 2026-05-10: Added catalog foundation concept.
 - 2026-05-10: Added initial concepts.

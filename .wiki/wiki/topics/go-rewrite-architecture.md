@@ -2,6 +2,7 @@
 title: "Go Rewrite Architecture"
 category: topic
 sources:
+  - raw/notes/2026-05-10-inspect-layer.md
   - raw/notes/2026-05-10-catalog-foundation.md
   - raw/repos/2026-05-10-spritey-repo-baseline.md
   - raw/notes/2026-05-10-agent-rules-and-constitution.md
@@ -46,19 +47,19 @@ CLI parsing should stay thin. `cmd/spritey/main.go` should delegate to controlle
 
 ## Current State
 
-As of the catalog foundation slice, the root Go app has a real first command:
+As of the inspect-layer slice, the root Go app has two metadata commands:
 
 - `go.mod`
-- `cmd/spritey/main.go` routes `catalog`
-- `app/models` defines catalog and error data
-- `app/services` loads asset pack metadata
+- `cmd/spritey/main.go` routes `catalog` and `inspect layer`
+- `app/models` defines catalog, inspect, and error data
+- `app/services` loads asset pack metadata and performs exact layer lookup
 - `app/controllers` owns command orchestration and exit codes
 - `app/views` writes JSON responses
 - `Dockerfile`
 - `compose.yaml`
 - `Makefile`
 
-The app still has no recipe validation, renderer, report generator, or `inspect layer` command.
+The app still has no recipe validation, renderer, or report generator.
 
 Normal development should use Docker Compose through Make targets. Native Go is optional.
 
@@ -71,5 +72,6 @@ GitHub Actions should use Docker Compose through `make docker-ci`. Local develop
 ## Sources
 
 - [Spritey Repository Baseline](../../raw/repos/2026-05-10-spritey-repo-baseline.md) - current tree and implementation state.
+- [Inspect Layer Implementation](../../raw/notes/2026-05-10-inspect-layer.md) - second implemented metadata command.
 - [Catalog Foundation Implementation](../../raw/notes/2026-05-10-catalog-foundation.md) - first implemented command and MVC package split.
 - [Agent Rules and Constitution](../../raw/notes/2026-05-10-agent-rules-and-constitution.md) - architecture rules.
