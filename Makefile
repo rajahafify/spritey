@@ -14,7 +14,7 @@ ci:
 
 native-ci:
 	$(GO) test ./...
-	$(GO) build -o bin/spritey ./cmd/spritey
+	$(GO) build -buildvcs=false -o bin/spritey ./cmd/spritey
 
 docker-build:
 	$(COMPOSE) build
@@ -32,7 +32,7 @@ docker-fmt:
 	$(COMPOSE) run --rm $(SERVICE) gofmt -w ./cmd ./app
 
 docker-ci: docker-build docker-test
-	$(COMPOSE) run --rm $(SERVICE) go build -o bin/spritey ./cmd/spritey
+	$(COMPOSE) run --rm $(SERVICE) go build -buildvcs=false -o bin/spritey ./cmd/spritey
 
 docker-clean:
 	$(COMPOSE) down --remove-orphans

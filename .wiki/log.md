@@ -13,3 +13,4 @@
 ## [2026-05-10] ingest | Added .gitattributes, GitHub Actions Docker Compose CI, and first Go scaffold test
 ## [2026-05-10] compile | Updated go-rewrite-architecture with CI and test baseline
 ## [2026-05-10] ingest | Added Makefile local CI fallback from Docker Compose to native Go
+## [2026-05-10] ingest | Disabled Go VCS stamping for CI build commands to avoid Docker-mounted checkout failures

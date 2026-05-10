@@ -77,3 +77,5 @@ The repository now has:
 - `cmd/spritey/main_test.go` with a minimal scaffold test.
 
 GitHub Actions follows the Docker Compose route. Local validation can use native Go when Docker is unavailable.
+
+Build commands use `-buildvcs=false` so Docker-mounted CI builds do not fail when Go cannot stamp VCS metadata from the mounted checkout.
