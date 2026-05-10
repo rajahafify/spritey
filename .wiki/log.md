@@ -24,3 +24,5 @@
 ## [2026-05-10] compile | Added recipe-validation article and updated CLI/architecture articles
 ## [2026-05-10] ingest | Assets-validation implementation documented (raw/notes/2026-05-10-assets-validation.md)
 ## [2026-05-10] compile | Added assets-validation article and updated CLI/architecture/assets articles
+## [2026-05-10] ingest | Make-command implementation documented (raw/notes/2026-05-10-make-command.md)
+## [2026-05-10] compile | Added make-command article and updated CLI architecture/contract coverage through fifth slice
