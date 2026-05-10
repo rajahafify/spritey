@@ -10,6 +10,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/rajahafify/spritey/app/models"
 )
 
 func TestMakeServiceReportV1FieldsAndOrdering(t *testing.T) {
@@ -33,7 +35,7 @@ func TestMakeServiceReportV1FieldsAndOrdering(t *testing.T) {
 	if err := json.Unmarshal(reportData, &got); err != nil {
 		t.Fatal(err)
 	}
-	required := []string{"schema_version", "command", "pack", "recipe", "assets", "output", "render", "layers", "warnings"}
+	required := []string{"schema_version", "command", "pack", "recipe", "assets", "output", "artifacts", "render", "layers", "warnings"}
 	for _, key := range required {
 		if _, ok := got[key]; !ok {
 			t.Fatalf("missing report key %q in %+v", key, got)
@@ -49,6 +51,18 @@ func TestMakeServiceReportV1FieldsAndOrdering(t *testing.T) {
 	}
 	if recipeMeta["body_type_requested"] != "male" || recipeMeta["body_type_effective"] != "male" {
 		t.Fatalf("unexpected recipe body type provenance: %+v", recipeMeta)
+	}
+	artifacts := got["artifacts"].(map[string]interface{})
+	outputPNG := artifacts["output_png"].(map[string]interface{})
+	if outputPNG["sha256"] != fileSHA256(t, out) {
+		t.Fatalf("unexpected report output sha256: %+v", outputPNG)
+	}
+	info, err := os.Stat(out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if int64(outputPNG["bytes"].(float64)) != info.Size() {
+		t.Fatalf("unexpected report output bytes: got=%v want=%d", outputPNG["bytes"], info.Size())
 	}
 
 	render := got["render"].(map[string]interface{})
@@ -218,6 +232,34 @@ func TestMakeServiceFallbackPathWarningsInResultAndReport(t *testing.T) {
 	}
 	assertComposedLayer(t, composed[0], "body", "body_human", 10, "female", "body/human/female", "", 0)
 	assertComposedLayer(t, composed[1], "weapon", "sword_training", 30, "male", "weapon/sword/male", "", 0)
+}
+
+func TestMakeServiceReportArtifactMetadataFailureReturnsRenderFailedAndSkipsReport(t *testing.T) {
+	assets, recipe := writeMakeFixture(t)
+	out := filepath.Join(t.TempDir(), "sprite.png")
+	report := filepath.Join(t.TempDir(), "sprite.report.json")
+
+	original := outputPNGArtifactFn
+	outputPNGArtifactFn = func(path string) (models.MakeReportOutputPNGArtifact, error) {
+		return models.MakeReportOutputPNGArtifact{}, fmt.Errorf("metadata failure")
+	}
+	defer func() {
+		outputPNGArtifactFn = original
+	}()
+
+	_, problem := NewMakeService().Make(recipe, assets, out, report)
+	if problem == nil {
+		t.Fatal("expected make problem")
+	}
+	if problem.Code != "RENDER_FAILED" {
+		t.Fatalf("unexpected make problem code: %+v", problem)
+	}
+	if problem.Field != "report" {
+		t.Fatalf("unexpected make problem field: %+v", problem)
+	}
+	if _, err := os.Stat(report); !os.IsNotExist(err) {
+		t.Fatalf("expected report file not written, stat err=%v", err)
+	}
 }
 
 func assertComposedLayer(t *testing.T, value interface{}, category string, id string, zPos int, resolvedBodyType string, resolvedPath string, paletteVariant string, creditCount int) {

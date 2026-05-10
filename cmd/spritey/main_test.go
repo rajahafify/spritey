@@ -830,6 +830,24 @@ func TestMakeJSONReportProvenanceAndEnvelopeUnchanged(t *testing.T) {
 	if recipeMeta["path"] != recipe || recipeMeta["body_type_requested"] != "male" || recipeMeta["body_type_effective"] != "male" {
 		t.Fatalf("unexpected report recipe provenance: %+v", recipeMeta)
 	}
+	artifacts, ok := reportJSON["artifacts"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected artifacts metadata in report: %+v", reportJSON)
+	}
+	outputPNG, ok := artifacts["output_png"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected artifacts.output_png metadata in report: %+v", artifacts)
+	}
+	if outputPNG["sha256"] != pngSHA256(t, out) {
+		t.Fatalf("unexpected report artifact sha256: %+v", outputPNG)
+	}
+	info, err := os.Stat(out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if int64(outputPNG["bytes"].(float64)) != info.Size() {
+		t.Fatalf("unexpected report artifact bytes: got=%v want=%d", outputPNG["bytes"], info.Size())
+	}
 	layers := reportJSON["layers"].(map[string]interface{})
 	composed, ok := layers["composed"].([]interface{})
 	if !ok || len(composed) != 2 {

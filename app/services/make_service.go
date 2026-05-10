@@ -1,10 +1,13 @@
 package services
 
 import (
+	"crypto/sha256"
 	"encoding/json"
+	"fmt"
 	"image"
 	"image/draw"
 	"image/png"
+	"io"
 	"os"
 	"path"
 	"path/filepath"
@@ -18,6 +21,8 @@ type MakeService struct {
 	validator RecipeValidator
 	loader    CatalogLoader
 }
+
+var outputPNGArtifactFn = computeOutputPNGArtifact
 
 func NewMakeService() MakeService {
 	return MakeService{
@@ -132,6 +137,15 @@ func (service MakeService) Make(recipePath string, assetsPath string, outPath st
 	}
 
 	if reportPath != "" {
+		outputArtifact, err := outputPNGArtifactFn(outPath)
+		if err != nil {
+			return models.MakeResult{}, &models.MakeProblem{
+				Code:    "RENDER_FAILED",
+				Message: err.Error(),
+				Field:   "report",
+			}
+		}
+
 		composedLayers := make([]models.MakeReportComposedLayer, 0, len(appliedLayers))
 		for _, layer := range appliedLayers {
 			composedLayers = append(composedLayers, models.MakeReportComposedLayer{
@@ -157,6 +171,7 @@ func (service MakeService) Make(recipePath string, assetsPath string, outPath st
 		report.Recipe.BodyTypeRequested = validation.BodyTypeRequested
 		report.Assets.Path = assetsPath
 		report.Output.PNG.Path = outPath
+		report.Artifacts.OutputPNG = outputArtifact
 		report.Render.Canvas.Width = frameWidth
 		report.Render.Canvas.Height = canvasHeight
 		report.Render.FrameCount = len(animationIDs)
@@ -219,6 +234,29 @@ func writeJSONFile(path string, value interface{}) error {
 	encoder := json.NewEncoder(file)
 	encoder.SetIndent("", "  ")
 	return encoder.Encode(value)
+}
+
+func computeOutputPNGArtifact(path string) (models.MakeReportOutputPNGArtifact, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return models.MakeReportOutputPNGArtifact{}, err
+	}
+	defer file.Close()
+
+	info, err := file.Stat()
+	if err != nil {
+		return models.MakeReportOutputPNGArtifact{}, err
+	}
+
+	hash := sha256.New()
+	if _, err := io.Copy(hash, file); err != nil {
+		return models.MakeReportOutputPNGArtifact{}, err
+	}
+
+	return models.MakeReportOutputPNGArtifact{
+		SHA256: fmt.Sprintf("%x", hash.Sum(nil)),
+		Bytes:  info.Size(),
+	}, nil
 }
 
 func makeProblemFromProblem(problem models.Problem) *models.MakeProblem {

@@ -18,6 +18,9 @@ type MakeReportV1Provenance struct {
 	Output struct {
 		PNG MakeFileOutput `json:"png"`
 	} `json:"output"`
+	Artifacts struct {
+		OutputPNG MakeReportOutputPNGArtifact `json:"output_png"`
+	} `json:"artifacts"`
 	Render struct {
 		Canvas struct {
 			Width  int `json:"width"`
@@ -41,4 +44,9 @@ type MakeReportComposedLayer struct {
 	ResolvedPath     string   `json:"resolved_path"`
 	PaletteVariant   string   `json:"palette_variant"`
 	Credits          []Credit `json:"credits"`
+}
+
+type MakeReportOutputPNGArtifact struct {
+	SHA256 string `json:"sha256"`
+	Bytes  int64  `json:"bytes"`
 }

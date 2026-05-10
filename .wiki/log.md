@@ -34,3 +34,5 @@
 ## [2026-05-10] compile | Updated make-command concept coverage for additive report provenance fields
 ## [2026-05-10] ingest | Make animation-strip output implementation documented (raw/notes/2026-05-10-make-animation-strip-output.md)
 ## [2026-05-10] compile | Updated make-command concept/index coverage for vertical strip rendering behavior
+## [2026-05-10] ingest | Make report artifact-integrity implementation documented (raw/notes/2026-05-10-make-report-artifact-integrity.md)
+## [2026-05-10] compile | Updated make-command concept/index coverage for additive report output artifact metadata

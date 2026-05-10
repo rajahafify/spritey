@@ -8,6 +8,7 @@ Last updated: 2026-05-10
 
 | File | Summary | Tags | Updated |
 |------|---------|------|---------|
+| [2026-05-10-make-report-artifact-integrity.md](2026-05-10-make-report-artifact-integrity.md) | Tenth Spritey product slice adds additive report artifact metadata for output PNG hash and byte size integrity. | spritey, make, report, integrity | 2026-05-10 |
 | [2026-05-10-make-animation-strip-output.md](2026-05-10-make-animation-strip-output.md) | Ninth Spritey product slice changes make rendering to vertical animation-strip output while preserving CLI/report contracts. | spritey, make, animation, strip | 2026-05-10 |
 | [2026-05-10-make-report-provenance.md](2026-05-10-make-report-provenance.md) | Eighth Spritey product slice expands make report v1 with additive provenance metadata and deterministic composed-layer details. | spritey, make, report, provenance | 2026-05-10 |
 | [2026-05-10-render-input-readiness.md](2026-05-10-render-input-readiness.md) | Seventh Spritey product slice adds render-input readiness checks, missing-frame validation failures, and fallback warnings. | spritey, validate, make, readiness | 2026-05-10 |
@@ -21,6 +22,7 @@ Last updated: 2026-05-10
 
 ## Recent Changes
 
+- 2026-05-10: Added make-report-artifact-integrity implementation source note.
 - 2026-05-10: Added make-animation-strip-output implementation source note.
 - 2026-05-10: Added make-report-provenance implementation source note.
 - 2026-05-10: Added render-input-readiness implementation source note.
