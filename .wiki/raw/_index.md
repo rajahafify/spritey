@@ -8,6 +8,7 @@ Last updated: 2026-05-11
 
 | File | Summary | Tags | Updated |
 |------|---------|------|---------|
+| [notes/2026-05-11-make-recolor-parity.md](notes/2026-05-11-make-recolor-parity.md) | Fourteenth Spritey product slice adds Python-equivalent per-layer palette recoloring in make render pipeline while preserving output contracts. | spritey, make, recolor, palette | 2026-05-11 |
 | [notes/2026-05-11-make-animation-layout-parity.md](notes/2026-05-11-make-animation-layout-parity.md) | Thirteenth Spritey product slice aligns make animation row emission and strip layout with Python compositor LPC behavior. | spritey, make, animation, layout | 2026-05-11 |
 | [notes/2026-05-10-path-resolver-parity.md](notes/2026-05-10-path-resolver-parity.md) | Twelfth Spritey product slice aligns validate/make frame lookup with Python compositor A/B/C/D path resolver rules. | spritey, make, validate, resolver | 2026-05-10 |
 | [notes/2026-05-10-batch-make-manifest-v1.md](notes/2026-05-10-batch-make-manifest-v1.md) | Eleventh Spritey product slice adds `make batch` manifest v1 with sequential fail-fast execution and stable batch output envelopes. | spritey, make, batch, manifest | 2026-05-10 |
@@ -32,6 +33,7 @@ Last updated: 2026-05-11
 
 ## Recent Changes
 
+- 2026-05-11: Added make-recolor-parity implementation note.
 - 2026-05-11: Added make-animation-layout-parity implementation note.
 - 2026-05-10: Added path-resolver-parity implementation note.
 - 2026-05-10: Added batch-make-manifest-v1 implementation note.

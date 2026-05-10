@@ -117,6 +117,101 @@ func TestMakeServiceDeterministicPNGHashAndDimensions(t *testing.T) {
 	}
 }
 
+func TestMakeServiceAppliesRecolorWhenMaterialAndPaletteVariantPresent(t *testing.T) {
+	assets, recipe := writeMakeRecolorFixture(t, makeRecolorFixtureOptions{
+		paletteVariant: "tan",
+		paletteJSON:    `{"light":["#112233"],"tan":["#AA8844"]}`,
+		pixels:         []color.RGBA{{R: 0x11, G: 0x22, B: 0x33, A: 0xFF}},
+	})
+	out := filepath.Join(t.TempDir(), "sprite.png")
+
+	result, problem := NewMakeService().Make(recipe, assets, out, "")
+	if problem != nil {
+		t.Fatalf("expected success, got %+v", problem)
+	}
+	if result.Command != "make" {
+		t.Fatalf("unexpected command: %+v", result)
+	}
+
+	img := decodePNGFile(t, out)
+	got := color.RGBAModel.Convert(img.At(0, 0)).(color.RGBA)
+	want := color.RGBA{R: 0xAA, G: 0x88, B: 0x44, A: 0xFF}
+	if got != want {
+		t.Fatalf("expected recolored pixel: got=%+v want=%+v", got, want)
+	}
+}
+
+func TestMakeServiceUnknownPaletteVariantLeavesImageUnchanged(t *testing.T) {
+	assets, recipe := writeMakeRecolorFixture(t, makeRecolorFixtureOptions{
+		paletteVariant: "unknown",
+		paletteJSON:    `{"light":["#112233"],"tan":["#AA8844"]}`,
+		pixels:         []color.RGBA{{R: 0x11, G: 0x22, B: 0x33, A: 0xFF}},
+	})
+	out := filepath.Join(t.TempDir(), "sprite.png")
+
+	_, problem := NewMakeService().Make(recipe, assets, out, "")
+	if problem != nil {
+		t.Fatalf("expected success, got %+v", problem)
+	}
+
+	img := decodePNGFile(t, out)
+	got := color.RGBAModel.Convert(img.At(0, 0)).(color.RGBA)
+	want := color.RGBA{R: 0x11, G: 0x22, B: 0x33, A: 0xFF}
+	if got != want {
+		t.Fatalf("expected unchanged pixel for unknown variant: got=%+v want=%+v", got, want)
+	}
+}
+
+func TestMakeServiceFuzzyPaletteVariantMatch(t *testing.T) {
+	assets, recipe := writeMakeRecolorFixture(t, makeRecolorFixtureOptions{
+		paletteVariant: "auburn",
+		paletteJSON:    `{"light":["#102030"],"auburn_dark":["#B05020"]}`,
+		pixels:         []color.RGBA{{R: 0x10, G: 0x20, B: 0x30, A: 0xFF}},
+	})
+	out := filepath.Join(t.TempDir(), "sprite.png")
+
+	_, problem := NewMakeService().Make(recipe, assets, out, "")
+	if problem != nil {
+		t.Fatalf("expected success, got %+v", problem)
+	}
+
+	img := decodePNGFile(t, out)
+	got := color.RGBAModel.Convert(img.At(0, 0)).(color.RGBA)
+	want := color.RGBA{R: 0xB0, G: 0x50, B: 0x20, A: 0xFF}
+	if got != want {
+		t.Fatalf("expected fuzzy recolored pixel: got=%+v want=%+v", got, want)
+	}
+}
+
+func TestMakeServiceRecolorToleranceAndTransparencyParity(t *testing.T) {
+	assets, recipe := writeMakeRecolorFixture(t, makeRecolorFixtureOptions{
+		paletteVariant: "tan",
+		paletteJSON:    `{"light":["#101010"],"tan":["#808080"]}`,
+		pixels: []color.RGBA{
+			{R: 0x12, G: 0x10, B: 0x0F, A: 0xFF}, // within tolerance
+			{R: 0x13, G: 0x10, B: 0x10, A: 0xFF}, // outside tolerance
+			{R: 0x10, G: 0x10, B: 0x10, A: 0x00}, // transparent
+		},
+	})
+	out := filepath.Join(t.TempDir(), "sprite.png")
+
+	_, problem := NewMakeService().Make(recipe, assets, out, "")
+	if problem != nil {
+		t.Fatalf("expected success, got %+v", problem)
+	}
+
+	img := decodePNGFile(t, out)
+	if got := color.RGBAModel.Convert(img.At(0, 0)).(color.RGBA); got != (color.RGBA{R: 0x80, G: 0x80, B: 0x80, A: 0xFF}) {
+		t.Fatalf("expected recolor at x=0, got %+v", got)
+	}
+	if got := color.RGBAModel.Convert(img.At(1, 0)).(color.RGBA); got != (color.RGBA{R: 0x13, G: 0x10, B: 0x10, A: 0xFF}) {
+		t.Fatalf("expected unchanged pixel outside tolerance at x=1, got %+v", got)
+	}
+	if got := color.RGBAModel.Convert(img.At(2, 0)).(color.RGBA); got.A != 0 {
+		t.Fatalf("expected transparent pixel to remain transparent at x=2, got %+v", got)
+	}
+}
+
 func TestMakeServiceUsesFixedLPCAnimationOrderAndSkipsMissingLayerFrames(t *testing.T) {
 	assets, recipe := writeMakeLPCParityFixture(t, makeLPCParityFixtureOptions{
 		requiredAnimations: []string{"idle", "walk"},
@@ -601,6 +696,73 @@ func writeLayerPNGWithSize(t *testing.T, path string, fill color.RGBA, width int
 	if err := png.Encode(file, img); err != nil {
 		t.Fatal(err)
 	}
+}
+
+func writeLayerPNGWithPixels(t *testing.T, path string, pixels []color.RGBA) {
+	t.Helper()
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	img := image.NewRGBA(image.Rect(0, 0, len(pixels), 1))
+	for x, pixel := range pixels {
+		img.SetRGBA(x, 0, pixel)
+	}
+	file, err := os.Create(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer file.Close()
+	if err := png.Encode(file, img); err != nil {
+		t.Fatal(err)
+	}
+}
+
+type makeRecolorFixtureOptions struct {
+	paletteVariant string
+	paletteJSON    string
+	pixels         []color.RGBA
+}
+
+func writeMakeRecolorFixture(t *testing.T, opts makeRecolorFixtureOptions) (string, string) {
+	t.Helper()
+	root := t.TempDir()
+	assets := filepath.Join(root, "assets")
+
+	paletteVariant := opts.paletteVariant
+	if paletteVariant == "" {
+		paletteVariant = "tan"
+	}
+	paletteJSON := opts.paletteJSON
+	if paletteJSON == "" {
+		paletteJSON = `{"light":["#112233"],"tan":["#AA8844"]}`
+	}
+	pixels := opts.pixels
+	if len(pixels) == 0 {
+		pixels = []color.RGBA{{R: 0x11, G: 0x22, B: 0x33, A: 0xFF}}
+	}
+
+	writeFixtureFile(t, filepath.Join(assets, "pack.json"), `{"schema_version":"1","id":"make-recolor","name":"Make Recolor","defaults":{"body_type":"male","animations":["walk"],"canvas_width":8}}`)
+	writeFixtureFile(t, filepath.Join(assets, "sheet_definitions", "body", "body_human.json"), `{"name":"Human Body","type_name":"body","layer_1":{"zPos":10,"male":"body/human/male/"},"recolors":{"material":"skin"},"animations":["walk"]}`)
+	writeFixtureFile(t, filepath.Join(assets, "palette_definitions", "skin_main.json"), paletteJSON)
+	writeLayerPNGWithPixels(t, filepath.Join(assets, "spritesheets", "body", "human", "male", "walk.png"), pixels)
+
+	recipe := filepath.Join(root, "recipe.json")
+	writeFixtureFile(t, recipe, `{"body_type":"male","selections":{"body":{"id":"body_human","palette_variant":"`+paletteVariant+`"}}}`)
+	return assets, recipe
+}
+
+func decodePNGFile(t *testing.T, path string) image.Image {
+	t.Helper()
+	file, err := os.Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer file.Close()
+	img, err := png.Decode(file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return img
 }
 
 func fileSHA256(t *testing.T, path string) string {

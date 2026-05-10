@@ -6,7 +6,7 @@ Last updated: 2026-05-11
 
 ## Statistics
 
-- Sources: 16 raw documents
+- Sources: 17 raw documents
 - Articles: 8 compiled wiki articles
 - Inventory records: 0 tracked items
 - Datasets: 0 manifests
@@ -32,6 +32,7 @@ Last updated: 2026-05-11
 
 ## Recent Changes
 
+- 2026-05-11: Implemented make recolor parity with Python recolorer semantics (material+variant gated recolor, palette scan and lookup parity, tolerance-based RGB swap, non-fatal palette misses) in spec 014.
 - 2026-05-11: Implemented make animation/layout parity with Python compositor LPC row order, fixed 832 strip width, row-height compositing parity, and 832x256 fallback behavior (spec 013).
 - 2026-05-10: Implemented path resolver parity with Python compositor A/B/C/D lookup rules for validate/make frame discovery (spec 012).
 - 2026-05-10: Implemented batch make manifest v1 (spec 011) with sequential fail-fast jobs, stable batch envelopes, and manifest-relative path resolution.

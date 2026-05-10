@@ -21,6 +21,7 @@ type MakeService struct {
 	validator     RecipeValidator
 	loader        CatalogLoader
 	frameResolver SpriteFrameResolver
+	recolorer     PaletteRecolorer
 }
 
 var outputPNGArtifactFn = computeOutputPNGArtifact
@@ -37,6 +38,7 @@ func NewMakeService() MakeService {
 		validator:     NewRecipeValidator(),
 		loader:        NewCatalogLoader(),
 		frameResolver: NewSpriteFrameResolver(),
+		recolorer:     NewPaletteRecolorer(),
 	}
 }
 
@@ -111,6 +113,9 @@ func (service MakeService) Make(recipePath string, assetsPath string, outPath st
 					Message: err.Error(),
 					Field:   "render",
 				}
+			}
+			if layer.Indexed.Layer.RecolorMaterial != "" && layer.Palette != "" {
+				src = service.recolorer.Recolor(src, assetsPath, layer.Indexed.Layer.RecolorMaterial, layer.Palette)
 			}
 
 			if row == nil {
