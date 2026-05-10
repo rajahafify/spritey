@@ -1127,7 +1127,7 @@ func TestMakeRenderFailureIsExit6(t *testing.T) {
 	}
 }
 
-func TestMakeMissingSpriteFrameMapsToExit3AndNoOutput(t *testing.T) {
+func TestMakeMissingSpriteFrameStillSucceedsWithAvailableRows(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	assets, recipe := writeReadinessCLIFixture(t, readinessCLIFixtureOptions{
 		recipeBodyType:      "male",
@@ -1143,15 +1143,18 @@ func TestMakeMissingSpriteFrameMapsToExit3AndNoOutput(t *testing.T) {
 	report := filepath.Join(t.TempDir(), "sprite.report.json")
 
 	code := run([]string{"make", recipe, "--assets", assets, "--out", out, "--report", report, "--json"}, &stdout, &stderr)
-	if code != 3 {
-		t.Fatalf("expected exit code 3, got %d stderr=%q stdout=%q", code, stderr.String(), stdout.String())
+	if code != 0 {
+		t.Fatalf("expected exit code 0, got %d stderr=%q stdout=%q", code, stderr.String(), stdout.String())
 	}
 	got := decodeMakeResponse(t, stdout.Bytes())
-	if got.OK || len(got.Errors) != 1 || got.Errors[0].Code != "MISSING_SPRITE_FRAME" {
-		t.Fatalf("unexpected response: %+v", got)
+	if !got.OK {
+		t.Fatalf("expected success response: %+v", got)
 	}
-	if _, err := os.Stat(out); !os.IsNotExist(err) {
-		t.Fatalf("expected png output not to exist, stat err=%v", err)
+	if int(got.Summary["frame_count"].(float64)) != 1 || int(got.Summary["animation_count"].(float64)) != 1 {
+		t.Fatalf("expected one emitted row summary, got %+v", got.Summary)
+	}
+	if _, err := os.Stat(out); err != nil {
+		t.Fatalf("expected png output to exist, stat err=%v", err)
 	}
 }
 
@@ -1173,18 +1176,21 @@ func TestMakeSlashUsesMappedAttackPathWhenDirectFramesMissing(t *testing.T) {
 	}
 }
 
-func TestMakeSlashMissingAllResolverPathsMapsToMissingSpriteFrame(t *testing.T) {
+func TestMakeSlashMissingMappedPathStillSucceedsWithBodyRow(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	assets, recipe := writeSlashParityCLIFixture(t, false)
 	out := filepath.Join(t.TempDir(), "sprite.png")
 
 	code := run([]string{"make", recipe, "--assets", assets, "--out", out, "--json"}, &stdout, &stderr)
-	if code != 3 {
-		t.Fatalf("expected exit code 3, got %d stderr=%q stdout=%q", code, stderr.String(), stdout.String())
+	if code != 0 {
+		t.Fatalf("expected exit code 0, got %d stderr=%q stdout=%q", code, stderr.String(), stdout.String())
 	}
 	got := decodeMakeResponse(t, stdout.Bytes())
-	if got.OK || len(got.Errors) != 1 || got.Errors[0].Code != "MISSING_SPRITE_FRAME" {
-		t.Fatalf("unexpected error response: %+v", got)
+	if !got.OK {
+		t.Fatalf("expected success response: %+v", got)
+	}
+	if int(got.Summary["frame_count"].(float64)) != 1 || int(got.Summary["animation_count"].(float64)) != 1 {
+		t.Fatalf("expected one emitted row summary, got %+v", got.Summary)
 	}
 }
 

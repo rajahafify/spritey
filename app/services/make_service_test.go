@@ -341,7 +341,7 @@ func TestMakeServiceNoEmittedRowsReturnsTransparentFallbackCanvas(t *testing.T) 
 	}
 }
 
-func TestMakeServiceMissingRequiredFrameReturnsInputValidationAndNoOutput(t *testing.T) {
+func TestMakeServiceMissingRequiredFrameSkipsMissingLayerAndRendersAvailableRows(t *testing.T) {
 	assets, recipe := writeMakeReadinessFixture(t, makeReadinessFixtureOptions{
 		recipeBodyType:      "male",
 		missingFallback:     "male",
@@ -354,15 +354,15 @@ func TestMakeServiceMissingRequiredFrameReturnsInputValidationAndNoOutput(t *tes
 	})
 	out := filepath.Join(t.TempDir(), "sprite.png")
 
-	_, problem := NewMakeService().Make(recipe, assets, out, "")
-	if problem == nil {
-		t.Fatal("expected make problem")
+	result, problem := NewMakeService().Make(recipe, assets, out, "")
+	if problem != nil {
+		t.Fatalf("expected make success, got %+v", problem)
 	}
-	if problem.Code != "MISSING_SPRITE_FRAME" {
-		t.Fatalf("unexpected make code: %+v", problem)
+	if result.Summary.FrameCount != 1 || result.Summary.AnimationCount != 1 {
+		t.Fatalf("expected one emitted row from available frames, got %+v", result.Summary)
 	}
-	if _, err := os.Stat(out); !os.IsNotExist(err) {
-		t.Fatalf("expected no output file, stat err=%v", err)
+	if _, err := os.Stat(out); err != nil {
+		t.Fatalf("expected output file to exist, stat err=%v", err)
 	}
 }
 
@@ -379,16 +379,16 @@ func TestMakeServiceResolvesMappedAttackSlashPath(t *testing.T) {
 	}
 }
 
-func TestMakeServiceMappedAttackSlashMissingReturnsMissingSpriteFrame(t *testing.T) {
+func TestMakeServiceMappedAttackSlashMissingComposesAvailableBodyRow(t *testing.T) {
 	assets, recipe := writeSlashParityFixture(t, false)
 	out := filepath.Join(t.TempDir(), "sprite.png")
 
-	_, problem := NewMakeService().Make(recipe, assets, out, "")
-	if problem == nil {
-		t.Fatal("expected make problem")
+	result, problem := NewMakeService().Make(recipe, assets, out, "")
+	if problem != nil {
+		t.Fatalf("expected success, got %+v", problem)
 	}
-	if problem.Code != "MISSING_SPRITE_FRAME" {
-		t.Fatalf("unexpected make code: %+v", problem)
+	if result.Summary.FrameCount != 1 {
+		t.Fatalf("expected one emitted row from body slash frame, got %+v", result.Summary)
 	}
 }
 

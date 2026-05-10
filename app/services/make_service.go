@@ -43,7 +43,7 @@ func NewMakeService() MakeService {
 }
 
 func (service MakeService) Make(recipePath string, assetsPath string, outPath string, reportPath string) (models.MakeResult, *models.MakeProblem) {
-	validation, problem := service.validator.Validate(recipePath, assetsPath)
+	validation, problem := service.validator.ValidateForMake(recipePath, assetsPath)
 	if problem != nil {
 		return models.MakeResult{}, makeProblemFromProblem(*problem)
 	}

@@ -8,6 +8,7 @@ Last updated: 2026-05-11
 
 | File | Summary | Tags | Updated |
 |------|---------|------|---------|
+| [notes/2026-05-11-make-frame-readiness-parity.md](notes/2026-05-11-make-frame-readiness-parity.md) | Fifteenth Spritey product slice aligns make frame-readiness with Python compositor by making missing layer frames non-fatal in make while validate remains strict. | spritey, make, validate, readiness | 2026-05-11 |
 | [notes/2026-05-11-make-recolor-parity.md](notes/2026-05-11-make-recolor-parity.md) | Fourteenth Spritey product slice adds Python-equivalent per-layer palette recoloring in make render pipeline while preserving output contracts. | spritey, make, recolor, palette | 2026-05-11 |
 | [notes/2026-05-11-make-animation-layout-parity.md](notes/2026-05-11-make-animation-layout-parity.md) | Thirteenth Spritey product slice aligns make animation row emission and strip layout with Python compositor LPC behavior. | spritey, make, animation, layout | 2026-05-11 |
 | [notes/2026-05-10-path-resolver-parity.md](notes/2026-05-10-path-resolver-parity.md) | Twelfth Spritey product slice aligns validate/make frame lookup with Python compositor A/B/C/D path resolver rules. | spritey, make, validate, resolver | 2026-05-10 |
@@ -33,6 +34,7 @@ Last updated: 2026-05-11
 
 ## Recent Changes
 
+- 2026-05-11: Added make-frame-readiness-parity implementation note.
 - 2026-05-11: Added make-recolor-parity implementation note.
 - 2026-05-11: Added make-animation-layout-parity implementation note.
 - 2026-05-10: Added path-resolver-parity implementation note.

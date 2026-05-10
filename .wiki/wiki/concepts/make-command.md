@@ -2,6 +2,7 @@
 title: "Make Command"
 category: concept
 sources:
+  - raw/notes/2026-05-11-make-frame-readiness-parity.md
   - raw/notes/2026-05-11-make-recolor-parity.md
   - raw/notes/2026-05-11-make-animation-layout-parity.md
   - raw/notes/2026-05-10-path-resolver-parity.md
@@ -15,7 +16,7 @@ sources:
 created: 2026-05-10
 updated: 2026-05-11
 tags: [spritey, make, render, report]
-summary: "Spritey's make commands support Python-parity path resolution, palette recoloring, and LPC row/layout behavior with deterministic strip rendering, stable single/batch JSON and non-JSON output, readiness-gated validation, and additive report provenance plus output-artifact integrity metadata."
+summary: "Spritey's make commands support Python-parity path resolution, recoloring, and LPC row/layout behavior with deterministic strip rendering, stable single/batch JSON and non-JSON output, make-specific non-fatal frame readiness, strict validate readiness, and additive report provenance plus output-artifact integrity metadata."
 ---
 
 # Make Command
@@ -29,6 +30,7 @@ spritey make <recipe> --assets <dir> --out <png> [--report <json>] [--json]
 Contract points in current implemented slices:
 
 - recipe/assets validation is required before rendering;
+- strict frame-readiness preflight remains enforced by `spritey validate`;
 - frame lookup uses shared resolver parity order:
   1) `{prefix}/{anim}.png`,
   2) `{prefix}/fg/{anim}.png`,
@@ -44,7 +46,7 @@ Contract points in current implemented slices:
 - first contributing layer sets row height; subsequent layers are padded/clipped to that row height before alpha compositing;
 - strip width is fixed at `832` and emitted rows are stacked vertically;
 - if no LPC rows emit, make writes a transparent `832x256` PNG;
-- render-input readiness failures such as `MISSING_SPRITE_FRAME` are treated as input-validation failures (exit `3`), not render failures;
+- `make` no longer treats missing layer animation frames as fatal input-validation failures; it composes available rows and succeeds when metadata/path validation passes;
 - output PNG path is explicit and required;
 - report output is optional and uses additive report schema v1 provenance fields;
 - when report output is requested, report v1 also includes output PNG artifact metadata (`sha256`, `bytes`) from the written file;

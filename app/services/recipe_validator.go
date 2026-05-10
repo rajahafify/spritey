@@ -24,6 +24,14 @@ func NewRecipeValidator() RecipeValidator {
 }
 
 func (validator RecipeValidator) Validate(recipePath string, assetsPath string) (models.RecipeValidationResult, *models.Problem) {
+	return validator.validate(recipePath, assetsPath, true)
+}
+
+func (validator RecipeValidator) ValidateForMake(recipePath string, assetsPath string) (models.RecipeValidationResult, *models.Problem) {
+	return validator.validate(recipePath, assetsPath, false)
+}
+
+func (validator RecipeValidator) validate(recipePath string, assetsPath string, requireFrames bool) (models.RecipeValidationResult, *models.Problem) {
 	catalog, problem := validator.loader.Load(assetsPath)
 	if problem != nil {
 		return models.RecipeValidationResult{}, problem
@@ -83,21 +91,23 @@ func (validator RecipeValidator) Validate(recipePath string, assetsPath string) 
 		if usedFallback {
 			warnings = append(warnings, fallbackBodyTypeWarning(selection.ID, bodyType, resolvedBodyType, resolvedPath))
 		}
-		for _, animationID := range requiredAnimations {
-			_, found, err := validator.frameResolver.ResolveFrame(assetsPath, resolvedPath, animationID)
-			if err != nil {
-				return models.RecipeValidationResult{}, &models.Problem{
-					Code:    "READ_SPRITE_FRAME_FAILED",
-					Message: err.Error(),
-					Field:   path.Join("spritesheets", path.Clean(path.Join(resolvedPath, animationID+".png"))),
+		if requireFrames {
+			for _, animationID := range requiredAnimations {
+				_, found, err := validator.frameResolver.ResolveFrame(assetsPath, resolvedPath, animationID)
+				if err != nil {
+					return models.RecipeValidationResult{}, &models.Problem{
+						Code:    "READ_SPRITE_FRAME_FAILED",
+						Message: err.Error(),
+						Field:   path.Join("spritesheets", path.Clean(path.Join(resolvedPath, animationID+".png"))),
+					}
 				}
-			}
-			if !found {
-				relativeFrame := path.Join("spritesheets", path.Clean(path.Join(resolvedPath, animationID+".png")))
-				return models.RecipeValidationResult{}, &models.Problem{
-					Code:    "MISSING_SPRITE_FRAME",
-					Message: fmt.Sprintf("missing required sprite frame: %s", relativeFrame),
-					Field:   relativeFrame,
+				if !found {
+					relativeFrame := path.Join("spritesheets", path.Clean(path.Join(resolvedPath, animationID+".png")))
+					return models.RecipeValidationResult{}, &models.Problem{
+						Code:    "MISSING_SPRITE_FRAME",
+						Message: fmt.Sprintf("missing required sprite frame: %s", relativeFrame),
+						Field:   relativeFrame,
+					}
 				}
 			}
 		}
