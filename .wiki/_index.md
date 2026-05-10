@@ -1,13 +1,13 @@
 # Spritey Index
 
-> Project-local wiki for the Spritey Go CLI rewrite and Python reference implementation.
+> Project-local wiki for the Spritey Go CLI rewrite.
 
 Last updated: 2026-05-10
 
 ## Statistics
 
-- Sources: 4 raw documents
-- Articles: 5 compiled wiki articles
+- Sources: 3 raw documents
+- Articles: 4 compiled wiki articles
 - Inventory records: 0 tracked items
 - Datasets: 0 manifests
 - Outputs: 0 generated artifacts
@@ -32,5 +32,6 @@ Last updated: 2026-05-10
 
 ## Recent Changes
 
+- 2026-05-10: Added MIT license and clarified that third-party sprite assets are user-provided at runtime.
 - 2026-05-10: Added Docker Compose development setup notes.
 - 2026-05-10: Initialized local Spritey wiki and compiled initial project articles.

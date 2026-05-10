@@ -6,7 +6,7 @@ Spritey is a Go CLI for generating animated 2D character spritesheets from recip
 
 The command name is `spritey`.
 
-The previous Python prototype may exist locally in `python_source/`, but that directory is ignored and must not be committed. Use it only as a local behavioral reference when present. Preserve its proven sprite-generation behavior unless a spec explicitly changes it.
+Legacy prototypes may exist locally in ignored directories such as `python_source/`, but those directories must not be committed. Use them only as local behavioral references when present.
 
 ## Root Layout
 
@@ -18,7 +18,7 @@ spritey/
 
 The Go implementation lives at the repository root. Do not place the Go app inside `python_source/`.
 
-The optional local Python prototype snapshot may live at:
+The optional local legacy prototype snapshot may live at:
 
 ```text
 python_source/
@@ -178,6 +178,8 @@ assets/
 
 Spritey should not hardcode behavior that belongs to the asset pack unless the fallback is explicitly documented in a spec.
 
+Do not commit third-party sprite assets. Asset packs are user-downloaded, installed, or provided at runtime.
+
 ## Testing Standard
 
 Use automated tests for behavior that affects the CLI contract or rendering output.
@@ -197,4 +199,4 @@ Do not treat `python_source/` as the Go app root, and do not commit it.
 
 Do not rename Spritey commands, folders, or user-facing terms without updating the relevant spec.
 
-Do not add GUI/editor scope, marketplace behavior, or broad plugin systems before the Go CLI matches the Python prototype's core behavior.
+Do not add GUI/editor scope, marketplace behavior, or broad plugin systems before the Go CLI matches the agreed core generation behavior.

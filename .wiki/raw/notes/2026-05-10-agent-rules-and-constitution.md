@@ -13,7 +13,7 @@ Spritey is defined as a Go CLI for generating animated 2D character spritesheets
 
 The command name is `spritey`.
 
-The Go implementation lives at the repository root. The previous Python prototype lives in `python_source/` and is the behavioral reference for the first Go implementation.
+The Go implementation lives at the repository root. Legacy prototypes may exist locally in ignored directories, but they are not part of the repository.
 
 ## Development Workflow
 

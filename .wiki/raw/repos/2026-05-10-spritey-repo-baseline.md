@@ -4,7 +4,7 @@ source: "D:/Work/spritey"
 type: repos
 ingested: 2026-05-10
 tags: [spritey, repository, baseline, go-cli]
-summary: "Snapshot of the Spritey repository after initialization: root Go app skeleton, Python reference under python_source, Spec Kit constitution, README, and AGENTS guidance."
+summary: "Snapshot of the Spritey repository after initialization: root Go app skeleton, Spec Kit constitution, README, AGENTS guidance, local wiki, and Docker Compose development setup."
 ---
 
 # Spritey Repository Baseline
@@ -47,7 +47,11 @@ The Go implementation is intended to live at the repository root using the Rails
 
 The root Go implementation is scaffold-only. There is no `go.mod`, `main.go`, command parser, schema code, or renderer yet.
 
-The working behavior exists in the local Python reference snapshot under `python_source/` when that ignored directory is present.
+Ignored local prototype directories may exist on a developer machine, but they are not repository content.
+
+## Asset Policy
+
+Spritey must not commit third-party sprite assets. Compatible assets are downloaded, installed, or provided by users at runtime.
 
 ## Docker Development Update
 

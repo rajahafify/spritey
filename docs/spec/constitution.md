@@ -6,7 +6,7 @@ Spritey is a Go CLI for generating animated 2D character spritesheets from recip
 
 The command name is `spritey`.
 
-The Go implementation lives at the repository root. The previous Python prototype may exist as a local ignored snapshot in `python_source/` and is the behavioral reference for the first Go implementation when present.
+The Go implementation lives at the repository root. Legacy prototypes may exist locally in ignored directories, but they are not part of the repository.
 
 ## Primary User
 
@@ -55,6 +55,8 @@ assets/
 
 Spritey should not hardcode behavior that belongs to the asset pack unless a safe internal fallback is explicitly documented in a spec.
 
+Spritey must not bundle third-party sprite assets in this repository. Users download, install, or provide compatible assets at runtime.
+
 ## Recipe Files
 
 Recipes are file-based JSON documents.
@@ -65,7 +67,7 @@ A recipe describes the desired character through selections such as body, clothi
 
 ## Behavioral Reference
 
-The existing Python prototype is the behavioral reference for the first Go implementation.
+The agreed recipe-to-spritesheet behavior is the behavioral reference for the first Go implementation.
 
 The Go rewrite should preserve proven sprite-generation behavior before adding new product features.
 
@@ -157,4 +159,4 @@ Early versions should avoid:
 - Asset marketplace behavior.
 - Automatic publishing.
 - Broad plugin systems.
-- Large feature expansion before the Go CLI matches the Python prototype.
+- Large feature expansion before the Go CLI matches the agreed core generation behavior.

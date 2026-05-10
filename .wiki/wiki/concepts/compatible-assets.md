@@ -6,18 +6,18 @@ sources:
   - raw/repos/2026-05-10-python-reference-implementation.md
 created: 2026-05-10
 updated: 2026-05-10
-tags: [spritey, assets, pack-json, lpc-compatible]
+tags: [spritey, assets, pack-json, compatible-assets]
 aliases: [Assets Pack, Spritey Assets]
 confidence: high
 volatility: warm
 verified: 2026-05-10
 compiled-from: sources
-summary: "Spritey treats assets as a compatible pack format with pack.json defaults plus sheet definitions, spritesheets, and palette definitions."
+summary: "Spritey treats assets as a compatible pack format with pack.json defaults plus sheet definitions, spritesheets, and palette definitions; assets are user-provided at runtime."
 ---
 
 # Compatible Assets
 
-> Spritey's user-facing term is `assets`; internally the first compatible format follows the LPC-style folder and metadata shape used by the Python reference.
+> Spritey's user-facing term is `assets`. Asset packs are not bundled in this repository; users download, install, or provide them at runtime.
 
 A compatible assets directory should contain:
 
@@ -42,16 +42,14 @@ Expected defaults include:
 - palette fallback rules
 - missing body-type fallback behavior
 
-## Reference Behavior
+## Asset Policy
 
-The Python reference currently assumes LPC-compatible `sheet_definitions/`, `spritesheets/`, and `palette_definitions/` folders. The Go implementation should preserve the proven behavior while making `pack.json` the formal owner of defaults.
+Spritey must not commit third-party sprite assets. The repository contains the CLI, specs, schemas, tests, and fixture-sized test data only.
 
 ## See Also
 
-- [[python-reference|Python Reference]] ([Python Reference](../references/python-reference.md)) - behavior to preserve.
 - [[agent-friendly-cli|Agent-Friendly CLI]] ([Agent-Friendly CLI](agent-friendly-cli.md)) - commands that consume assets.
 
 ## Sources
 
 - [Spritey CLI Contract](../../raw/notes/2026-05-10-spritey-cli-contract.md) - assets directory and `pack.json` defaults.
-- [Python Reference Implementation](../../raw/repos/2026-05-10-python-reference-implementation.md) - current asset assumptions.

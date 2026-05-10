@@ -99,6 +99,8 @@ go build -o bin/spritey ./cmd/spritey
 
 Spritey works with compatible assets directories.
 
+Assets are not bundled in this repository. Users must download, install, or provide compatible assets at runtime.
+
 Expected shape:
 
 ```text
@@ -122,8 +124,8 @@ Example:
 ```json
 {
   "schema_version": "1",
-  "id": "universal-lpc-compatible",
-  "name": "Universal LPC Compatible Assets",
+  "id": "example-compatible-assets",
+  "name": "Example Compatible Assets",
   "defaults": {
     "body_type": "male",
     "animations": ["spellcast", "thrust", "walk", "slash", "shoot", "hurt"],
@@ -261,8 +263,8 @@ Example:
     "height": 1344
   },
   "pack": {
-    "id": "universal-lpc-compatible",
-    "name": "Universal LPC Compatible Assets"
+    "id": "example-compatible-assets",
+    "name": "Example Compatible Assets"
   },
   "layers": [
     {
@@ -375,8 +377,12 @@ spritey/
 
 The Go implementation lives at the repository root. A local ignored Python reference snapshot may exist in `python_source/`, but it is not part of this repository.
 
-## License And Credits
+## License
 
-Spritey generates derivative spritesheets from the selected source layers. Generated output may require attribution depending on the selected assets.
+Spritey is licensed under the MIT License. See [LICENSE](LICENSE).
+
+## Asset Licenses And Credits
+
+Spritey does not bundle third-party sprite assets. Generated output may require attribution depending on the user-provided assets selected at runtime.
 
 Use report and credits output to track which source layers were used.

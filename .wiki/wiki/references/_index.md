@@ -8,8 +8,7 @@ Last updated: 2026-05-10
 
 | File | Summary | Tags | Updated |
 |------|---------|------|---------|
-| [python-reference.md](python-reference.md) | Python source is the behavioral reference for the Go rewrite. | spritey, python-source, rendering | 2026-05-10 |
 
 ## Recent Changes
 
-- 2026-05-10: Added Python reference article.
+- 2026-05-10: Removed repo-owned Python reference article.

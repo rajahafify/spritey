@@ -17,7 +17,7 @@ summary: "Spritey's Go implementation should live at the repository root and fol
 
 # Go Rewrite Architecture
 
-> Spritey's Go app is intended to live at the repository root, with any local `python_source/` snapshot kept ignored and used as reference material only.
+> Spritey's Go app is intended to live at the repository root. Ignored local prototype directories are not repository content.
 
 The scaffolded root layout is:
 
