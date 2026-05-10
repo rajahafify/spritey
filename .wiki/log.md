@@ -10,3 +10,6 @@
 ## [2026-05-10] compile | Updated go-rewrite-architecture with Docker Compose development path
 ## [2026-05-10] ingest | MIT license added; third-party sprite assets policy clarified
 ## [2026-05-10] compile | Removed repo-owned legacy reference articles and updated compatible-assets policy
+## [2026-05-10] ingest | Added .gitattributes, GitHub Actions Docker Compose CI, and first Go scaffold test
+## [2026-05-10] compile | Updated go-rewrite-architecture with CI and test baseline
+## [2026-05-10] ingest | Added Makefile local CI fallback from Docker Compose to native Go

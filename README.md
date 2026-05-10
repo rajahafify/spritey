@@ -60,6 +60,12 @@ Optional:
 
 ## Docker Development
 
+Run the local CI path. This uses Docker Compose when available and falls back to native Go when Docker is not installed:
+
+```bash
+make ci
+```
+
 Build the development image:
 
 ```bash
@@ -91,8 +97,7 @@ Native Go is optional. If Go is installed locally, the equivalent commands are:
 ```bash
 git clone git@github.com:rajahafify/spritey.git
 cd spritey
-go test ./...
-go build -o bin/spritey ./cmd/spritey
+make native-ci
 ```
 
 ## Assets

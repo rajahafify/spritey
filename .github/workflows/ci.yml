@@ -1,0 +1,24 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  docker-compose:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Run Docker Compose CI
+        run: make docker-ci
+
+      - name: Clean Docker Compose resources
+        if: always()
+        run: make docker-clean

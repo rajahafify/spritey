@@ -33,5 +33,6 @@ Last updated: 2026-05-10
 ## Recent Changes
 
 - 2026-05-10: Added MIT license and clarified that third-party sprite assets are user-provided at runtime.
+- 2026-05-10: Added line-ending rules, Docker Compose CI workflow, and first Go scaffold test.
 - 2026-05-10: Added Docker Compose development setup notes.
 - 2026-05-10: Initialized local Spritey wiki and compiled initial project articles.

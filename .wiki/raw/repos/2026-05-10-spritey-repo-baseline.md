@@ -64,3 +64,16 @@ After the initial wiki ingest, the repository gained a Docker Compose developmen
 - `Makefile` provides `docker-build`, `docker-test`, `docker-run`, `docker-shell`, `docker-fmt`, and `docker-clean`.
 
 Normal development is Docker-based. Native Go remains optional for faster local feedback.
+
+## CI And Test Baseline
+
+The repository now has:
+
+- `.gitattributes` for line-ending normalization.
+- `.github/workflows/ci.yml` for GitHub Actions.
+- `Makefile` target `docker-ci`, which builds the Docker Compose dev image, runs `go test ./...`, and builds `./cmd/spritey`.
+- `Makefile` target `ci`, which uses Docker Compose when available and falls back to native Go when Docker is missing.
+- `Makefile` target `native-ci`, which runs `go test ./...` and builds `./cmd/spritey` locally.
+- `cmd/spritey/main_test.go` with a minimal scaffold test.
+
+GitHub Actions follows the Docker Compose route. Local validation can use native Go when Docker is unavailable.

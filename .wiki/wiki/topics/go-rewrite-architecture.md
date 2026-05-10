@@ -57,6 +57,12 @@ The app still has no real command parser, schema code, catalog loader, recipe va
 
 Normal development should use Docker Compose through Make targets. Native Go is optional.
 
+## Test Baseline
+
+The first test is intentionally minimal and exists to prove that local Go and GitHub Actions can execute the project test path.
+
+GitHub Actions should use Docker Compose through `make docker-ci`. Local development should use `make ci`, which runs Docker Compose when available and falls back to native Go when Docker is unavailable.
+
 ## Sources
 
 - [Spritey Repository Baseline](../../raw/repos/2026-05-10-spritey-repo-baseline.md) - current tree and implementation state.
