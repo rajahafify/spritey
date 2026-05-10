@@ -32,3 +32,5 @@
 ## [2026-05-10] compile | Updated recipe-validation and make-command articles for missing-frame preflight and fallback warning propagation
 ## [2026-05-10] ingest | Make report provenance implementation documented (raw/notes/2026-05-10-make-report-provenance.md)
 ## [2026-05-10] compile | Updated make-command concept coverage for additive report provenance fields
+## [2026-05-10] ingest | Make animation-strip output implementation documented (raw/notes/2026-05-10-make-animation-strip-output.md)
+## [2026-05-10] compile | Updated make-command concept/index coverage for vertical strip rendering behavior

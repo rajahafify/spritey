@@ -2,6 +2,7 @@
 title: "Make Command"
 category: concept
 sources:
+  - raw/notes/2026-05-10-make-animation-strip-output.md
   - raw/notes/2026-05-10-make-report-provenance.md
   - raw/notes/2026-05-10-render-input-readiness.md
   - raw/notes/2026-05-10-make-human-output.md
@@ -9,7 +10,7 @@ sources:
 created: 2026-05-10
 updated: 2026-05-10
 tags: [spritey, make, render, report]
-summary: "Spritey's make command supports deterministic JSON/non-JSON output, readiness-gated validation, and additive report provenance metadata."
+summary: "Spritey's make command supports deterministic strip rendering, stable JSON/non-JSON output, readiness-gated validation, and additive report provenance metadata."
 ---
 
 # Make Command
@@ -26,6 +27,7 @@ Contract points in current implemented slices:
 - render-input readiness failures such as `MISSING_SPRITE_FRAME` are treated as input-validation failures (exit `3`), not render failures;
 - output PNG path is explicit and required;
 - report output is optional and uses additive report schema v1 provenance fields;
+- output PNG is a vertical strip with one frame row per required animation ID;
 - JSON envelope is stable in `--json` mode;
 - readiness warnings are propagated into make JSON `warnings` and report `warnings`;
 - non-JSON success output is deterministic and line-oriented for human operators;
@@ -33,7 +35,7 @@ Contract points in current implemented slices:
 
 Report v1 provenance now includes pack metadata, recipe requested/effective body-type metadata, and deterministic composed-layer entries with category, z-order, resolved body-type/path, palette variant, and credits.
 
-Current render pipeline remains intentionally minimal and deterministic for testing: ordered layer composition using runtime fixture assets plus deterministic report field ordering.
+Current render pipeline remains intentionally minimal and deterministic for testing: each required animation is composed into one strip row using ordered layer composition plus deterministic report field ordering.
 
 Non-JSON success output format:
 

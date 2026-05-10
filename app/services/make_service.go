@@ -76,29 +76,35 @@ func (service MakeService) Make(recipePath string, assetsPath string, outPath st
 	if canvasWidth <= 0 {
 		canvasWidth = 64
 	}
-	canvasHeight := canvasWidth
+	frameWidth := canvasWidth
+	frameHeight := canvasWidth
+	frameCount := len(animationIDs)
+	canvasHeight := frameHeight * frameCount
 	canvas := image.NewRGBA(image.Rect(0, 0, canvasWidth, canvasHeight))
 
-	for _, layer := range appliedLayers {
-		sourcePath := filepath.Join(assetsPath, "spritesheets", filepath.FromSlash(layer.Render.ResolvedPath), animationIDs[0]+".png")
-		file, err := os.Open(sourcePath)
-		if err != nil {
-			return models.MakeResult{}, &models.MakeProblem{
-				Code:    "RENDER_FAILED",
-				Message: err.Error(),
-				Field:   "render",
+	for frameIndex, animationID := range animationIDs {
+		frameOrigin := image.Pt(0, frameIndex*frameHeight)
+		for _, layer := range appliedLayers {
+			sourcePath := filepath.Join(assetsPath, "spritesheets", filepath.FromSlash(layer.Render.ResolvedPath), animationID+".png")
+			file, err := os.Open(sourcePath)
+			if err != nil {
+				return models.MakeResult{}, &models.MakeProblem{
+					Code:    "RENDER_FAILED",
+					Message: err.Error(),
+					Field:   "render",
+				}
 			}
-		}
-		src, err := png.Decode(file)
-		file.Close()
-		if err != nil {
-			return models.MakeResult{}, &models.MakeProblem{
-				Code:    "RENDER_FAILED",
-				Message: err.Error(),
-				Field:   "render",
+			src, err := png.Decode(file)
+			file.Close()
+			if err != nil {
+				return models.MakeResult{}, &models.MakeProblem{
+					Code:    "RENDER_FAILED",
+					Message: err.Error(),
+					Field:   "render",
+				}
 			}
+			draw.Draw(canvas, src.Bounds().Add(frameOrigin), src, src.Bounds().Min, draw.Over)
 		}
-		draw.Draw(canvas, canvas.Bounds(), src, src.Bounds().Min, draw.Over)
 	}
 
 	if err := writePNGAtomically(outPath, canvas); err != nil {
@@ -117,7 +123,7 @@ func (service MakeService) Make(recipePath string, assetsPath string, outPath st
 		Summary: models.MakeSummary{
 			FrameCount: len(animationIDs),
 			Canvas: models.MakeCanvas{
-				Width:  canvasWidth,
+				Width:  frameWidth,
 				Height: canvasHeight,
 			},
 			AnimationCount: len(animationIDs),
@@ -151,7 +157,7 @@ func (service MakeService) Make(recipePath string, assetsPath string, outPath st
 		report.Recipe.BodyTypeRequested = validation.BodyTypeRequested
 		report.Assets.Path = assetsPath
 		report.Output.PNG.Path = outPath
-		report.Render.Canvas.Width = canvasWidth
+		report.Render.Canvas.Width = frameWidth
 		report.Render.Canvas.Height = canvasHeight
 		report.Render.FrameCount = len(animationIDs)
 		report.Render.AnimationIDs = animationIDs

@@ -6,7 +6,7 @@ Last updated: 2026-05-10
 
 ## Statistics
 
-- Sources: 11 raw documents
+- Sources: 12 raw documents
 - Articles: 8 compiled wiki articles
 - Inventory records: 0 tracked items
 - Datasets: 0 manifests
@@ -32,6 +32,7 @@ Last updated: 2026-05-10
 
 ## Recent Changes
 
+- 2026-05-10: Implemented make animation strip output (spec 009) with per-animation vertical strip rendering and unchanged make/report envelopes.
 - 2026-05-10: Implemented make report provenance (spec 008) with additive report fields and deterministic composed-layer metadata.
 - 2026-05-10: Implemented render-input readiness (spec 007) with missing-frame preflight and fallback warning propagation.
 - 2026-05-10: Implemented make non-JSON deterministic output (spec 006) and documented sixth CLI slice.

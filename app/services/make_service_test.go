@@ -78,7 +78,7 @@ func TestMakeServiceDeterministicPNGHashAndDimensions(t *testing.T) {
 	if problem != nil {
 		t.Fatalf("expected success, got %+v", problem)
 	}
-	if result.Summary.Canvas.Width != 8 || result.Summary.Canvas.Height != 8 {
+	if result.Summary.Canvas.Width != 8 || result.Summary.Canvas.Height != 16 {
 		t.Fatalf("unexpected canvas size: %+v", result.Summary.Canvas)
 	}
 
@@ -92,11 +92,61 @@ func TestMakeServiceDeterministicPNGHashAndDimensions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if img.Bounds().Dx() != 8 || img.Bounds().Dy() != 8 {
+	if img.Bounds().Dx() != 8 || img.Bounds().Dy() != 16 {
 		t.Fatalf("unexpected dimensions: %dx%d", img.Bounds().Dx(), img.Bounds().Dy())
 	}
-	if got := fileSHA256(t, out); got != "08e2ea94d65b62e90bf48000bb9f1746ec09b3537d16f6d948b105d4ee4baa9e" {
+	if got := fileSHA256(t, out); got != "d0d2f874acf5b8784360cd9df7c085560474710819235d27e82ad469680caf72" {
 		t.Fatalf("unexpected hash: %s", got)
+	}
+}
+
+func TestMakeServiceStripRowsDifferByAnimationFrame(t *testing.T) {
+	assets, recipe := writeMakeFixture(t)
+	out := filepath.Join(t.TempDir(), "sprite.png")
+
+	_, problem := NewMakeService().Make(recipe, assets, out, "")
+	if problem != nil {
+		t.Fatalf("expected success, got %+v", problem)
+	}
+
+	file, err := os.Open(out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer file.Close()
+
+	img, err := png.Decode(file)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	top := color.RGBAModel.Convert(img.At(2, 2)).(color.RGBA)
+	next := color.RGBAModel.Convert(img.At(2, 10)).(color.RGBA)
+	if top == next {
+		t.Fatalf("expected per-frame strip rows to differ, got same pixel RGBA=%+v", top)
+	}
+}
+
+func TestMakeServiceSingleAnimationRemainsSingleFrame(t *testing.T) {
+	assets, recipe := writeMakeReadinessFixture(t, makeReadinessFixtureOptions{
+		recipeBodyType:      "male",
+		missingFallback:     "male",
+		requiredAnimations:  []string{"idle"},
+		includeBodyIdle:     true,
+		includeWeaponIdle:   true,
+		weaponHasFemalePath: true,
+	})
+	out := filepath.Join(t.TempDir(), "sprite.png")
+
+	result, problem := NewMakeService().Make(recipe, assets, out, "")
+	if problem != nil {
+		t.Fatalf("expected success, got %+v", problem)
+	}
+	if result.Summary.FrameCount != 1 {
+		t.Fatalf("expected single frame, got %d", result.Summary.FrameCount)
+	}
+	if result.Summary.Canvas.Width != 8 || result.Summary.Canvas.Height != 8 {
+		t.Fatalf("unexpected canvas size for single animation: %+v", result.Summary.Canvas)
 	}
 }
 

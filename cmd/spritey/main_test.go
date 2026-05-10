@@ -798,6 +798,17 @@ func TestMakeJSONReportProvenanceAndEnvelopeUnchanged(t *testing.T) {
 	if len(envelope) != 6 {
 		t.Fatalf("expected unchanged make JSON top-level envelope keys, got %+v", envelope)
 	}
+	summary, ok := envelope["summary"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected summary object in envelope, got %+v", envelope["summary"])
+	}
+	canvas, ok := summary["canvas"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected summary.canvas object, got %+v", summary["canvas"])
+	}
+	if int(canvas["height"].(float64)) != 16 {
+		t.Fatalf("expected summary canvas height 16 for two-frame strip, got %+v", canvas)
+	}
 
 	reportData, err := os.ReadFile(report)
 	if err != nil {
@@ -823,6 +834,58 @@ func TestMakeJSONReportProvenanceAndEnvelopeUnchanged(t *testing.T) {
 	composed, ok := layers["composed"].([]interface{})
 	if !ok || len(composed) != 2 {
 		t.Fatalf("expected composed layer provenance in report, got %+v", layers["composed"])
+	}
+}
+
+func TestMakeReportAnimationOrderMatchesStripRowOrder(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	assets, recipe := writeDeterministicMakeFixture(t)
+	out := filepath.Join(t.TempDir(), "sprite.png")
+	report := filepath.Join(t.TempDir(), "sprite.report.json")
+
+	code := run([]string{"make", recipe, "--assets", assets, "--out", out, "--report", report, "--json"}, &stdout, &stderr)
+	if code != 0 {
+		t.Fatalf("expected exit code 0, got %d stderr=%q stdout=%q", code, stderr.String(), stdout.String())
+	}
+
+	reportData, err := os.ReadFile(report)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var reportJSON map[string]interface{}
+	if err := json.Unmarshal(reportData, &reportJSON); err != nil {
+		t.Fatal(err)
+	}
+
+	render, ok := reportJSON["render"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected render object in report, got %+v", reportJSON["render"])
+	}
+	animationIDs, ok := render["animation_ids"].([]interface{})
+	if !ok {
+		t.Fatalf("expected render.animation_ids array, got %+v", render["animation_ids"])
+	}
+	if len(animationIDs) != 2 || animationIDs[0] != "idle" || animationIDs[1] != "walk" {
+		t.Fatalf("unexpected animation id order in report: %+v", animationIDs)
+	}
+
+	file, err := os.Open(out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer file.Close()
+	img, err := png.Decode(file)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	top := color.RGBAModel.Convert(img.At(2, 2)).(color.RGBA)
+	next := color.RGBAModel.Convert(img.At(2, 10)).(color.RGBA)
+	if top != (color.RGBA{R: 204, G: 40, B: 80, A: 255}) {
+		t.Fatalf("expected top strip row to match idle frame, got %+v", top)
+	}
+	if next != (color.RGBA{R: 214, G: 50, B: 90, A: 255}) {
+		t.Fatalf("expected second strip row to match walk frame, got %+v", next)
 	}
 }
 
@@ -859,7 +922,7 @@ func TestMakeTextSuccessWithReport(t *testing.T) {
 	}
 
 	want := fmt.Sprintf(
-		"ok: make\npng: %s\nreport: %s\nframe_count: 2\ncanvas: 8x8\nanimation_count: 2\n",
+		"ok: make\npng: %s\nreport: %s\nframe_count: 2\ncanvas: 8x16\nanimation_count: 2\n",
 		out,
 		report,
 	)
@@ -882,7 +945,7 @@ func TestMakeTextSuccessWithoutReport(t *testing.T) {
 	}
 
 	want := fmt.Sprintf(
-		"ok: make\npng: %s\nframe_count: 2\ncanvas: 8x8\nanimation_count: 2\n",
+		"ok: make\npng: %s\nframe_count: 2\ncanvas: 8x16\nanimation_count: 2\n",
 		out,
 	)
 	if stdout.String() != want {
