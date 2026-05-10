@@ -1,0 +1,13 @@
+.git
+.wiki
+assets
+bin
+build
+dist
+output
+tmp
+python_source/lpc-assets
+python_source/output
+python_source/__pycache__
+**/__pycache__
+*.pyc

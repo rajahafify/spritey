@@ -1,0 +1,40 @@
+# Go build outputs
+bin/
+dist/
+build/
+*.exe
+*.test
+*.out
+coverage.out
+
+# Generated Spritey outputs
+output/
+tmp/
+*.report.json
+
+# Local compatible assets packs
+assets/
+
+# Local Python reference snapshot. Do not commit this directory.
+python_source/
+
+# Python reference caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Python virtual environments
+.venv/
+venv/
+env/
+
+# Local environment files
+.env
+.env.*
+
+# Editor and OS files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

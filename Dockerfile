@@ -1,0 +1,7 @@
+FROM golang:1.23-bookworm
+
+WORKDIR /workspace
+
+ENV CGO_ENABLED=0
+
+CMD ["go", "test", "./..."]
