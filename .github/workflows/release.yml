@@ -83,24 +83,13 @@ jobs:
 
           if [ "${{ matrix.goos }}" = "windows" ]; then
             ASSET="dist/${BASE}.zip"
-            python - <<'PY'
-import os
-import zipfile
-
-bin_name = os.environ["BIN_NAME"]
-asset = os.environ["ASSET_NAME"]
-with zipfile.ZipFile(asset, "w", compression=zipfile.ZIP_DEFLATED) as zf:
-    zf.write(os.path.join("dist", bin_name), arcname=bin_name)
-PY
+            python -c 'import os,sys,zipfile; bin_name=sys.argv[1]; asset=sys.argv[2]; zf=zipfile.ZipFile(asset, "w", compression=zipfile.ZIP_DEFLATED); zf.write(os.path.join("dist", bin_name), arcname=bin_name); zf.close()' "${BIN}" "${ASSET}"
           else
             ASSET="dist/${BASE}.tar.gz"
             tar -C dist -czf "${ASSET}" "${BIN}"
           fi
 
           sha256sum "${ASSET}" > "${ASSET}.sha256"
-        env:
-          BIN_NAME: ${{ matrix.goos == 'windows' && format('spritey_{0}_{1}_{2}.exe', github.ref_name, matrix.goos, matrix.goarch) || format('spritey_{0}_{1}_{2}', github.ref_name, matrix.goos, matrix.goarch) }}
-          ASSET_NAME: ${{ matrix.goos == 'windows' && format('dist/spritey_{0}_{1}_{2}.zip', github.ref_name, matrix.goos, matrix.goarch) || format('dist/spritey_{0}_{1}_{2}.tar.gz', github.ref_name, matrix.goos, matrix.goarch) }}
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
