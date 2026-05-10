@@ -8,6 +8,7 @@ Last updated: 2026-05-11
 
 | File | Summary | Tags | Updated |
 |------|---------|------|---------|
+| [2026-05-11-download-lpc-assets.md](2026-05-11-download-lpc-assets.md) | Sixteenth Spritey product slice adds top-level LPC assets bootstrap command with stable JSON envelope and validator-backed install path. | spritey, assets, download, cli | 2026-05-11 |
 | [2026-05-11-make-frame-readiness-parity.md](2026-05-11-make-frame-readiness-parity.md) | Fifteenth Spritey product slice aligns make frame-readiness with Python compositor by skipping missing layer frames non-fatally while validate remains strict. | spritey, make, validate, readiness | 2026-05-11 |
 | [2026-05-11-make-recolor-parity.md](2026-05-11-make-recolor-parity.md) | Fourteenth Spritey product slice adds Python-equivalent layer recoloring in make pipeline with stable envelopes and exit mapping. | spritey, make, recolor, palette | 2026-05-11 |
 | [2026-05-11-make-animation-layout-parity.md](2026-05-11-make-animation-layout-parity.md) | Thirteenth Spritey product slice aligns make animation row emission and strip layout with the Python compositor LPC flow. | spritey, make, animation, layout | 2026-05-11 |
@@ -27,6 +28,7 @@ Last updated: 2026-05-11
 
 ## Recent Changes
 
+- 2026-05-11: Added download-lpc-assets implementation source note.
 - 2026-05-11: Added make-frame-readiness-parity implementation source note.
 - 2026-05-11: Added make-recolor-parity implementation source note.
 - 2026-05-11: Added make-animation-layout-parity implementation source note.

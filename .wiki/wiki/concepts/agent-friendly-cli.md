@@ -2,6 +2,7 @@
 title: "Agent-Friendly CLI"
 category: concept
 sources:
+  - raw/notes/2026-05-11-download-lpc-assets.md
   - raw/notes/2026-05-10-make-human-output.md
   - raw/notes/2026-05-10-make-command.md
   - raw/notes/2026-05-10-assets-validation.md
@@ -11,7 +12,7 @@ sources:
   - raw/notes/2026-05-10-spritey-cli-contract.md
   - raw/notes/2026-05-10-agent-rules-and-constitution.md
 created: 2026-05-10
-updated: 2026-05-10
+updated: 2026-05-11
 tags: [spritey, cli, agents, automation]
 aliases: [Spritey CLI, automation-friendly CLI]
 confidence: high
@@ -33,17 +34,19 @@ The intended command family is:
 
 ```bash
 spritey catalog --assets ./assets --json
+spritey --download-lpc-assets --json
 spritey assets validate --assets ./assets --json
 spritey inspect layer <layer-id> --assets ./assets --json
 spritey validate recipe.json --assets ./assets --json
 spritey make recipe.json --assets ./assets --out output/sprite.png --report output/sprite.report.json
 ```
 
-The first implemented product slice is `spritey catalog --assets <dir> --json`. The second implemented slice is `spritey inspect layer <layer-id> --assets <dir> --json`. The third implemented slice is `spritey validate <recipe-path> --assets <dir> --json`. The fourth implemented slice is `spritey assets validate --assets <dir> --json`. The fifth implemented slice is `spritey make <recipe> --assets <dir> --out <png> [--report <json>] [--json]`. The sixth implemented slice adds deterministic non-JSON success output for `spritey make`.
+The first implemented product slice is `spritey catalog --assets <dir> --json`. The second implemented slice is `spritey inspect layer <layer-id> --assets <dir> --json`. The third implemented slice is `spritey validate <recipe-path> --assets <dir> --json`. The fourth implemented slice is `spritey assets validate --assets <dir> --json`. The fifth implemented slice is `spritey make <recipe> --assets <dir> --out <png> [--report <json>] [--json]`. The sixth implemented slice adds deterministic non-JSON success output for `spritey make`. The sixteenth implemented slice adds top-level LPC asset bootstrap via `spritey --download-lpc-assets [--json] [--force]`.
 
 ## Design Implications
 
 - Recipes should be files, not inline JSON.
+- Asset installation should be scriptable from CLI without manual repo cloning.
 - All generated files should use explicit output paths.
 - JSON output must remain stable enough for scripts to parse.
 - Validation should be available before rendering.
@@ -69,3 +72,4 @@ The first implemented product slice is `spritey catalog --assets <dir> --json`. 
 - [Catalog Foundation Implementation](../../raw/notes/2026-05-10-catalog-foundation.md) - first implemented product slice.
 - [Spritey CLI Contract](../../raw/notes/2026-05-10-spritey-cli-contract.md) - command and reporting expectations.
 - [Agent Rules and Constitution](../../raw/notes/2026-05-10-agent-rules-and-constitution.md) - agent-first requirement.
+- [Download LPC Assets Implementation](../../raw/notes/2026-05-11-download-lpc-assets.md) - top-level assets bootstrap command.

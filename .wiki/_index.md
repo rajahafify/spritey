@@ -6,7 +6,7 @@ Last updated: 2026-05-11
 
 ## Statistics
 
-- Sources: 18 raw documents
+- Sources: 19 raw documents
 - Articles: 8 compiled wiki articles
 - Inventory records: 0 tracked items
 - Datasets: 0 manifests
@@ -32,6 +32,7 @@ Last updated: 2026-05-11
 
 ## Recent Changes
 
+- 2026-05-11: Implemented top-level `--download-lpc-assets` bootstrap command with stable JSON envelope and validator-backed install flow (spec 016).
 - 2026-05-11: Implemented make frame-readiness parity with Python compositor by making missing layer frames non-fatal in make while validate remains strict (spec 015).
 - 2026-05-11: Implemented make recolor parity with Python recolorer semantics (material+variant gated recolor, palette scan and lookup parity, tolerance-based RGB swap, non-fatal palette misses) in spec 014.
 - 2026-05-11: Implemented make animation/layout parity with Python compositor LPC row order, fixed 832 strip width, row-height compositing parity, and 832x256 fallback behavior (spec 013).

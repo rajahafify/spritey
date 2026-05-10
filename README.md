@@ -27,10 +27,11 @@ Spritey produces:
 Typical workflow:
 
 ```bash
-spritey catalog --assets ./assets --json
-spritey inspect layer torso_armour_plate --assets ./assets --json
-spritey validate recipes/knight.json --assets ./assets --json
-spritey make recipes/knight.json --assets ./assets --out output/knight.png --report output/knight.report.json
+spritey --download-lpc-assets --json
+spritey catalog --assets <downloaded-assets-path> --json
+spritey inspect layer torso_armour_plate --assets <downloaded-assets-path> --json
+spritey validate recipes/knight.json --assets <downloaded-assets-path> --json
+spritey make recipes/knight.json --assets <downloaded-assets-path> --out output/knight.png --report output/knight.report.json --json
 ```
 
 ## Installation
@@ -40,8 +41,7 @@ Download the Spritey binary for your platform and place it somewhere on your `PA
 Verify the install:
 
 ```bash
-spritey --version
-spritey --help
+spritey catalog --assets ./assets --json
 ```
 
 ## Development Prerequisites
@@ -105,6 +105,21 @@ make native-ci
 Spritey works with compatible assets directories.
 
 Assets are not bundled in this repository. Users must download, install, or provide compatible assets at runtime.
+
+### Download LPC Assets
+
+Spritey can bootstrap compatible LPC assets directly:
+
+```bash
+spritey --download-lpc-assets
+spritey --download-lpc-assets --json
+spritey --download-lpc-assets --json --force
+```
+
+- Default install path: `os.UserCacheDir()/spritey/assets/lpc`
+  - Windows example: `%LOCALAPPDATA%\spritey\assets\lpc`
+- Non-JSON mode shows progress/status on stderr during prepare/download/extract/validate/install.
+- JSON mode keeps stdout machine-readable and returns only the final JSON envelope.
 
 Expected shape:
 
@@ -245,6 +260,14 @@ Generate with a machine-readable report:
 spritey make recipes/knight.json --assets ./assets --out output/knight.png --report output/knight.report.json
 ```
 
+### `spritey make batch`
+
+Generates multiple spritesheets from a manifest (`schema_version: "1"`):
+
+```bash
+spritey make batch manifests/batch.json --assets ./assets --json
+```
+
 ### `spritey assets validate`
 
 Validates a compatible assets directory.
@@ -252,6 +275,24 @@ Validates a compatible assets directory.
 ```bash
 spritey assets validate --assets ./assets --json
 ```
+
+### `spritey --download-lpc-assets`
+
+Downloads and installs LPC-compatible assets to user cache:
+
+```bash
+spritey --download-lpc-assets --json
+```
+
+JSON success envelope:
+
+- `ok`
+- `command` (`download-lpc-assets`)
+- `assets.path`
+- `assets.source`
+- `assets.version`
+- `warnings`
+- `errors`
 
 ## Reports
 
@@ -317,24 +358,33 @@ When `--json` is used, errors are emitted in a structured format:
 }
 ```
 
+For `--download-lpc-assets`:
+
+- `2` invalid CLI args
+- `3` invalid downloaded assets (validation failure)
+- `1` operational failures (download/extract/write/cache-dir)
+
 ## Agent Workflow
 
 When asked to generate a sprite, agents should:
 
-1. Run `spritey catalog --assets ./assets --json`.
-2. Inspect likely layers with `spritey inspect layer`.
-3. Write a recipe file.
-4. Run `spritey validate`.
-5. Run `spritey make`.
-6. Read the report and summarize the result.
+1. Run `spritey --download-lpc-assets --json` and read `assets.path`.
+2. Run `spritey catalog --assets <assets.path> --json`.
+3. Inspect likely layers with `spritey inspect layer`.
+4. Write a recipe file.
+5. Run `spritey validate`.
+6. Run `spritey make`.
+7. Read the report and summarize the result.
 
 Example:
 
-```bash
-spritey catalog --assets ./assets --json > tmp/catalog.json
-spritey inspect layer torso_armour_plate --assets ./assets --json > tmp/plate.json
-spritey validate recipes/knight.json --assets ./assets --json
-spritey make recipes/knight.json --assets ./assets --out output/knight.png --report output/knight.report.json
+```powershell
+$bootstrap = spritey --download-lpc-assets --json | ConvertFrom-Json
+$assets = $bootstrap.assets.path
+spritey catalog --assets $assets --json > tmp/catalog.json
+spritey inspect layer torso_armour_plate --assets $assets --json > tmp/plate.json
+spritey validate recipes/knight.json --assets $assets --json
+spritey make recipes/knight.json --assets $assets --out output/knight.png --report output/knight.report.json --json
 ```
 
 Agents should prefer recipe files over inline JSON.

@@ -8,7 +8,7 @@ Last updated: 2026-05-11
 
 | File | Summary | Tags | Updated |
 |------|---------|------|---------|
-| [concepts/agent-friendly-cli.md](concepts/agent-friendly-cli.md) | Spritey's CLI is designed for agents through file-based inputs, explicit outputs, validation, JSON output, and stable errors. | spritey, cli, agents | 2026-05-10 |
+| [concepts/agent-friendly-cli.md](concepts/agent-friendly-cli.md) | Spritey's CLI is designed for agents through file-based inputs, explicit outputs, validation, JSON output, stable errors, and scriptable LPC asset bootstrap. | spritey, cli, agents | 2026-05-11 |
 | [concepts/make-command.md](concepts/make-command.md) | Spritey's make slices provide Python-parity path resolution, recoloring, LPC row/layout behavior, deterministic strip output, make-specific non-fatal frame-readiness behavior, strict validate readiness, and stable single/batch envelopes with additive report metadata. | spritey, make, render | 2026-05-11 |
 | [concepts/assets-validation.md](concepts/assets-validation.md) | Spritey's fourth product slice validates minimum compatible assets-pack structure. | spritey, assets, validate | 2026-05-10 |
 | [concepts/catalog-foundation.md](concepts/catalog-foundation.md) | Spritey's first product slice implements deterministic catalog JSON for compatible assets. | spritey, catalog, cli | 2026-05-10 |
@@ -20,6 +20,7 @@ Last updated: 2026-05-11
 
 ## Recent Changes
 
+- 2026-05-11: Updated agent-friendly-cli article with top-level `--download-lpc-assets` command contract (spec 016).
 - 2026-05-11: Updated make-command article for make-specific frame-readiness parity (non-fatal missing frames in make; strict readiness retained in validate) (spec 015).
 - 2026-05-11: Updated make-command article for Python recolor parity behavior in make layer composition (spec 014).
 - 2026-05-11: Updated make-command article for Python compositor LPC animation/layout parity behavior (spec 013).
