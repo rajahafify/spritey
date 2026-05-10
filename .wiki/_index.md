@@ -6,8 +6,8 @@ Last updated: 2026-05-10
 
 ## Statistics
 
-- Sources: 3 raw documents
-- Articles: 4 compiled wiki articles
+- Sources: 4 raw documents
+- Articles: 5 compiled wiki articles
 - Inventory records: 0 tracked items
 - Datasets: 0 manifests
 - Outputs: 0 generated artifacts
@@ -32,6 +32,7 @@ Last updated: 2026-05-10
 
 ## Recent Changes
 
+- 2026-05-10: Implemented catalog foundation and documented the first real CLI slice.
 - 2026-05-10: Added MIT license and clarified that third-party sprite assets are user-provided at runtime.
 - 2026-05-10: Added line-ending rules, Docker Compose CI workflow, and first Go scaffold test.
 - 2026-05-10: Added Docker Compose development setup notes.

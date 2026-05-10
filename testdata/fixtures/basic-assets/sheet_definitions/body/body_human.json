@@ -1,0 +1,14 @@
+{
+  "name": "Human Body",
+  "type_name": "body",
+  "layer_1": {
+    "zPos": 10,
+    "male": "body/human/male/",
+    "female": "body/human/female/"
+  },
+  "animations": ["walk"],
+  "recolors": {
+    "material": "skin"
+  },
+  "credits": []
+}

@@ -2,6 +2,7 @@
 title: "Agent-Friendly CLI"
 category: concept
 sources:
+  - raw/notes/2026-05-10-catalog-foundation.md
   - raw/notes/2026-05-10-spritey-cli-contract.md
   - raw/notes/2026-05-10-agent-rules-and-constitution.md
 created: 2026-05-10
@@ -32,6 +33,8 @@ spritey validate recipe.json --assets ./assets --json
 spritey make recipe.json --assets ./assets --out output/sprite.png --report output/sprite.report.json
 ```
 
+The first implemented product slice is `spritey catalog --assets <dir> --json`.
+
 ## Design Implications
 
 - Recipes should be files, not inline JSON.
@@ -43,9 +46,11 @@ spritey make recipe.json --assets ./assets --out output/sprite.png --report outp
 ## See Also
 
 - [[compatible-assets|Compatible Assets]] ([Compatible Assets](compatible-assets.md)) - asset pack contract.
-- [[spec-driven-development|Spec-Driven Development]] ([Spec-Driven Development](spec-driven-development.md)) - development workflow that protects the CLI contract.
+- [[catalog-foundation|Catalog Foundation]] ([Catalog Foundation](catalog-foundation.md)) - implemented catalog command.
+- [[spec-driven-development|Spec-Driven Development]] ([Spec-Driven Development](../topics/spec-driven-development.md)) - development workflow that protects the CLI contract.
 
 ## Sources
 
+- [Catalog Foundation Implementation](../../raw/notes/2026-05-10-catalog-foundation.md) - first implemented product slice.
 - [Spritey CLI Contract](../../raw/notes/2026-05-10-spritey-cli-contract.md) - command and reporting expectations.
 - [Agent Rules and Constitution](../../raw/notes/2026-05-10-agent-rules-and-constitution.md) - agent-first requirement.

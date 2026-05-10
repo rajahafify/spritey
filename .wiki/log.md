@@ -15,3 +15,6 @@
 ## [2026-05-10] ingest | Added Makefile local CI fallback from Docker Compose to native Go
 ## [2026-05-10] ingest | Disabled Go VCS stamping for CI build commands to avoid Docker-mounted checkout failures
 ## [2026-05-10] ingest | Updated GitHub Actions checkout action to Node 24-compatible v6
+## [2026-05-10] ingest | Catalog foundation implementation documented (raw/notes/2026-05-10-catalog-foundation.md)
+## [2026-05-10] compile | Added catalog-foundation article and updated CLI/architecture articles
+## [2026-05-10] compile | Added explicit nonexistent assets directory error to catalog foundation notes

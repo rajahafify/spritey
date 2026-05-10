@@ -1,0 +1,13 @@
+{
+  "schema_version": "1",
+  "id": "basic-test-assets",
+  "name": "Basic Test Assets",
+  "defaults": {
+    "body_type": "male",
+    "animations": ["walk"],
+    "canvas_width": 832,
+    "output_format": "png",
+    "missing_body_type_fallback": "male",
+    "palette_source_fallbacks": ["light", "base"]
+  }
+}
