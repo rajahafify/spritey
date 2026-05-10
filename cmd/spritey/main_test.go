@@ -1,6 +1,7 @@
 package main
 
 import (
+	"archive/zip"
 	"bytes"
 	"crypto/sha256"
 	"encoding/json"
@@ -8,9 +9,13 @@ import (
 	"image"
 	"image/color"
 	"image/png"
+	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
+
+	"github.com/rajahafify/spritey/app/services"
 )
 
 type catalogTestResponse struct {
@@ -164,6 +169,22 @@ type makeBatchTestResponse struct {
 	} `json:"errors"`
 }
 
+type downloadAssetsTestResponse struct {
+	OK      bool   `json:"ok"`
+	Command string `json:"command"`
+	Assets  *struct {
+		Path    string `json:"path"`
+		Source  string `json:"source,omitempty"`
+		Version string `json:"version,omitempty"`
+	} `json:"assets"`
+	Warnings []string `json:"warnings"`
+	Errors   []struct {
+		Code    string `json:"code"`
+		Message string `json:"message"`
+		Field   string `json:"field,omitempty"`
+	} `json:"errors"`
+}
+
 func TestCatalogJSONSuccess(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	assets := filepath.Join("..", "..", "testdata", "fixtures", "basic-assets")
@@ -204,6 +225,149 @@ func TestCatalogJSONSuccess(t *testing.T) {
 	}
 	if bodyLayer.PathPrefix != "body/human/female/" {
 		t.Fatalf("expected first sorted body-type path prefix, got %q", bodyLayer.PathPrefix)
+	}
+}
+
+func TestDownloadLPCAssetsJSONSuccess(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	tempCache := t.TempDir()
+	zipPayload := createLPCArchiveZipPayload(t, false)
+
+	originalFetcher := services.DefaultLPCArchiveFetcher
+	originalCacheResolver := services.DefaultUserCacheDirResolver
+	services.DefaultLPCArchiveFetcher = func(url string, onProgress func(int64, int64)) ([]byte, error) {
+		return zipPayload, nil
+	}
+	services.DefaultUserCacheDirResolver = func() (string, error) {
+		return tempCache, nil
+	}
+	t.Cleanup(func() {
+		services.DefaultLPCArchiveFetcher = originalFetcher
+		services.DefaultUserCacheDirResolver = originalCacheResolver
+	})
+
+	code := run([]string{"--download-lpc-assets", "--json"}, &stdout, &stderr)
+	if code != 0 {
+		t.Fatalf("expected exit code 0, got %d, stderr=%q stdout=%q", code, stderr.String(), stdout.String())
+	}
+	got := decodeDownloadAssetsResponse(t, stdout.Bytes())
+	if !got.OK || got.Command != "download-lpc-assets" {
+		t.Fatalf("unexpected response: %+v", got)
+	}
+	if got.Assets == nil {
+		t.Fatalf("expected assets payload, got %+v", got)
+	}
+	expectedPath := filepath.Join(tempCache, "spritey", "assets", "lpc")
+	if got.Assets.Path != expectedPath {
+		t.Fatalf("expected path %q, got %q", expectedPath, got.Assets.Path)
+	}
+	if len(got.Errors) != 0 {
+		t.Fatalf("expected no errors, got %+v", got.Errors)
+	}
+}
+
+func TestDownloadLPCAssetsUnknownArgumentIsCLIUsage(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+
+	code := run([]string{"--download-lpc-assets", "--json", "--wat"}, &stdout, &stderr)
+	if code != 2 {
+		t.Fatalf("expected exit code 2, got %d", code)
+	}
+
+	got := decodeDownloadAssetsResponse(t, stdout.Bytes())
+	if got.OK || len(got.Errors) != 1 || got.Errors[0].Code != "UNKNOWN_ARGUMENT" {
+		t.Fatalf("unexpected error response: %+v", got)
+	}
+}
+
+func TestDownloadLPCAssetsDownloadFailureMapsToExit1(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	tempCache := t.TempDir()
+
+	originalFetcher := services.DefaultLPCArchiveFetcher
+	originalCacheResolver := services.DefaultUserCacheDirResolver
+	services.DefaultLPCArchiveFetcher = func(url string, onProgress func(int64, int64)) ([]byte, error) {
+		return nil, fmt.Errorf("network unavailable")
+	}
+	services.DefaultUserCacheDirResolver = func() (string, error) {
+		return tempCache, nil
+	}
+	t.Cleanup(func() {
+		services.DefaultLPCArchiveFetcher = originalFetcher
+		services.DefaultUserCacheDirResolver = originalCacheResolver
+	})
+
+	code := run([]string{"--download-lpc-assets", "--json"}, &stdout, &stderr)
+	if code != 1 {
+		t.Fatalf("expected exit code 1, got %d", code)
+	}
+	got := decodeDownloadAssetsResponse(t, stdout.Bytes())
+	if got.OK || len(got.Errors) != 1 || got.Errors[0].Code != "DOWNLOAD_FAILED" {
+		t.Fatalf("unexpected error response: %+v", got)
+	}
+}
+
+func TestDownloadLPCAssetsInvalidDownloadedAssetsMapsToExit3(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	tempCache := t.TempDir()
+	zipPayload := createLPCArchiveZipPayload(t, true)
+
+	originalFetcher := services.DefaultLPCArchiveFetcher
+	originalCacheResolver := services.DefaultUserCacheDirResolver
+	services.DefaultLPCArchiveFetcher = func(url string, onProgress func(int64, int64)) ([]byte, error) {
+		return zipPayload, nil
+	}
+	services.DefaultUserCacheDirResolver = func() (string, error) {
+		return tempCache, nil
+	}
+	t.Cleanup(func() {
+		services.DefaultLPCArchiveFetcher = originalFetcher
+		services.DefaultUserCacheDirResolver = originalCacheResolver
+	})
+
+	code := run([]string{"--download-lpc-assets", "--json"}, &stdout, &stderr)
+	if code != 3 {
+		t.Fatalf("expected exit code 3, got %d", code)
+	}
+	got := decodeDownloadAssetsResponse(t, stdout.Bytes())
+	if got.OK || len(got.Errors) != 1 || got.Errors[0].Code != "INVALID_PACK_JSON" {
+		t.Fatalf("unexpected error response: %+v", got)
+	}
+}
+
+func TestDownloadLPCAssetsShowsProgressInTextMode(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	tempCache := t.TempDir()
+	zipPayload := createLPCArchiveZipPayload(t, false)
+
+	originalFetcher := services.DefaultLPCArchiveFetcher
+	originalCacheResolver := services.DefaultUserCacheDirResolver
+	services.DefaultLPCArchiveFetcher = func(url string, onProgress func(int64, int64)) ([]byte, error) {
+		if onProgress != nil {
+			onProgress(0, 100)
+			onProgress(25, 100)
+			onProgress(75, 100)
+			onProgress(100, 100)
+		}
+		return zipPayload, nil
+	}
+	services.DefaultUserCacheDirResolver = func() (string, error) {
+		return tempCache, nil
+	}
+	t.Cleanup(func() {
+		services.DefaultLPCArchiveFetcher = originalFetcher
+		services.DefaultUserCacheDirResolver = originalCacheResolver
+	})
+
+	code := run([]string{"--download-lpc-assets"}, &stdout, &stderr)
+	if code != 0 {
+		t.Fatalf("expected exit code 0, got %d stderr=%q stdout=%q", code, stderr.String(), stdout.String())
+	}
+	if !strings.Contains(stdout.String(), "ok: ") {
+		t.Fatalf("expected success text output, got %q", stdout.String())
+	}
+	if !strings.Contains(stderr.String(), "Downloading LPC assets") {
+		t.Fatalf("expected progress output on stderr, got %q", stderr.String())
 	}
 }
 
@@ -1465,6 +1629,15 @@ func decodeMakeBatchResponse(t *testing.T, data []byte) makeBatchTestResponse {
 	return got
 }
 
+func decodeDownloadAssetsResponse(t *testing.T, data []byte) downloadAssetsTestResponse {
+	t.Helper()
+	var got downloadAssetsTestResponse
+	if err := json.Unmarshal(data, &got); err != nil {
+		t.Fatalf("failed to decode JSON %q: %v", string(data), err)
+	}
+	return got
+}
+
 func assertHasKeys(t *testing.T, got map[string]interface{}, keys ...string) {
 	t.Helper()
 	for _, key := range keys {
@@ -1705,4 +1878,33 @@ func writeSlashParityCLIFixture(t *testing.T, includeMappedSlash bool) (string, 
 	recipe := filepath.Join(root, "recipe.json")
 	writeTestFile(t, recipe, `{"body_type":"male","selections":{"body":{"id":"body_human"},"weapon":{"id":"sword_training"}}}`)
 	return assets, recipe
+}
+
+func createLPCArchiveZipPayload(t *testing.T, includeInvalidPack bool) []byte {
+	t.Helper()
+	buffer := &bytes.Buffer{}
+	archive := zip.NewWriter(buffer)
+
+	base := "Universal-LPC-Spritesheet-Character-Generator-master/"
+	addZipFile := func(path string, contents string) {
+		writer, err := archive.Create(base + strings.TrimPrefix(filepath.ToSlash(path), "/"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := io.WriteString(writer, contents); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	if includeInvalidPack {
+		addZipFile("pack.json", `{not-json}`)
+	}
+	addZipFile("sheet_definitions/body/body_human.json", `{"name":"Human Body","type_name":"body","layer_1":{"zPos":10,"male":"body/human/male/"},"animations":["walk"]}`)
+	addZipFile("spritesheets/.gitkeep", "")
+	addZipFile("palette_definitions/.gitkeep", "")
+
+	if err := archive.Close(); err != nil {
+		t.Fatal(err)
+	}
+	return buffer.Bytes()
 }

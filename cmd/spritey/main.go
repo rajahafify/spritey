@@ -29,6 +29,12 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 	}
 
 	switch args[0] {
+	case "--download-lpc-assets":
+		options, problem := parseDownloadAssetsOptions(args[1:])
+		if problem != nil {
+			return controllers.WriteDownloadAssetsProblem("", *problem, controllers.ExitInvalidCLIUsage, options.JSON, stdout, stderr)
+		}
+		return controllers.NewDownloadAssetsController().Download(options, stdout, stderr)
 	case "assets":
 		options, problem := parseAssetsValidateOptions(args[1:])
 		if problem != nil {
@@ -108,6 +114,25 @@ func parseMakeBatchOptions(args []string) (controllers.MakeBatchOptions, *models
 			}
 			options.AssetsPath = args[i+1]
 			i++
+		default:
+			return options, &models.Problem{
+				Code:    "UNKNOWN_ARGUMENT",
+				Message: fmt.Sprintf("unknown argument: %s", args[i]),
+				Field:   "argument",
+			}
+		}
+	}
+	return options, nil
+}
+
+func parseDownloadAssetsOptions(args []string) (controllers.DownloadAssetsOptions, *models.Problem) {
+	options := controllers.DownloadAssetsOptions{}
+	for i := 0; i < len(args); i++ {
+		switch args[i] {
+		case "--json":
+			options.JSON = true
+		case "--force":
+			options.Force = true
 		default:
 			return options, &models.Problem{
 				Code:    "UNKNOWN_ARGUMENT",
